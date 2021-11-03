@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+#SBATCH -J ww3_shel
+#SBATCH -t 02:00:00
+#SBATCH -N 8
+#SBATCH --ntasks-per-node=32
+#
+# Run MPI-task
+mpprun ./ww3_shel
+#
+# Script ends here

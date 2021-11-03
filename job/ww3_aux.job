@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#SBATCH -J ww3_aux
+#SBATCH -t 00:10:00
+#SBATCH -n 1
+#
+# Run a single task in the foreground.
+./ww3_$1
+#
+# Script ends here
