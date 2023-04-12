@@ -42,8 +42,12 @@ message("ESMF_F90COMPILEPATHS:   ${ESMF_F90COMPILEPATHS}")
 #-------------------------
 list(APPEND switches "CESMCOUPLED" "NCO" "DIST" "MPI" "PR3" "UQ" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB") 
 
-#list(APPEND switches "IC4" "OMPG"  "OMPH") 
- list(APPEND switches "IC0" "PDLIB" "METIS")
+# TODO: need to enamble IC4 with the unstructured implemention  
+if (DEFINED USE_UNSTRUCT)
+  list(APPEND switches "IC0" "PDLIB" "METIS")
+else()
+  list(APPEND switches "IC4" "OMPG"  "OMPH") 
+endif()
 
 #-------------------------
 # Include list of src files to make file more readable
