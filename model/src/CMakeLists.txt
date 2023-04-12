@@ -112,5 +112,8 @@ set_property(SOURCE w3initmd.F90
 message("CMAKE_CURRENT_BINARY_DIR is ${CMAKE_CURRENT_BINARY_DIR}")
 message("PROJECT_BINARY_DIR is ${PROJECT_BINARY_DIR}")
 
+# Executables to always build
+add_executable(ww3_grid ww3_grid.F90)
+target_link_libraries(ww3_grid PRIVATE wav)
 
 install(TARGETS wav)
