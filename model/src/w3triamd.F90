@@ -2502,6 +2502,7 @@ END SUBROUTINE
           IP2=NEIGHBOR_NEXT(IP)
           IF (IP2.GT.0) THEN
             IP3=NEIGHBOR_PREV(IP2)
+            WRITE(*,*) 'IP=', IP, ' IP2=', IP2, ' IP3=', IP3
             IF (ABS(IP3 - IP).GT.0) THEN
               WRITE(*,*) 'IP=', IP, ' IP2=', IP2, ' IP3=', IP3
               WRITE(*,*) 'We have a dramatic inconsistency'
