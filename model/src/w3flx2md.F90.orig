@@ -145,7 +145,7 @@
       INTEGER, SAVE           :: IENT = 0
 #endif
       REAL                    :: SQRTH, SIX, R1, WNP, CP, UNZ, ALPHA, &
-                                 RDCH, AFP, A, B
+                                 RDCH, AFP
 !/
 !/ ------------------------------------------------------------------- /
 !/
@@ -179,22 +179,14 @@
       USTD   = UDIR
 !
       DO ITT=1, NITTIN
-        ! Original values A=0.57, B=-1.5, but Fan et al. (2012) proposed wind speed dependent values
-        A = 0.023 / ( 1.0568**U )
-        B = 0.012 * U
-        ALPHA  = A / ( CP / MAX (UST,0.0001) )**(-B)
+        ALPHA  = 0.57 / ( CP / MAX (UST,0.0001) )**(1.5)
         RDCH   = MAX ( 0. ,                                           &
             LOG ( ( ZWIND * GRAV) / ( CINXSI * SQRT(ALPHA) * UNZ**2) ) )
         CD     = 0.001 * ( 0.021 + 10.4 / (RDCH**1.23+1.85) )
         UST    = SQRT(CD) * UNZ
         Z0    = ZWIND * EXP ( -0.4 / SQRT(CD) )
-      END DO
+        END DO
 !
-      CD = 0.9*CD
-      UST    = SQRT(CD) * UNZ
-      Z0    = ZWIND * EXP ( -0.4 / SQRT(CD) )
-   
-
       RETURN
 !
 ! Formats

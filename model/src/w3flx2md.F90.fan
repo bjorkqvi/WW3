@@ -188,13 +188,8 @@
         CD     = 0.001 * ( 0.021 + 10.4 / (RDCH**1.23+1.85) )
         UST    = SQRT(CD) * UNZ
         Z0    = ZWIND * EXP ( -0.4 / SQRT(CD) )
-      END DO
+        END DO
 !
-      CD = 0.9*CD
-      UST    = SQRT(CD) * UNZ
-      Z0    = ZWIND * EXP ( -0.4 / SQRT(CD) )
-   
-
       RETURN
 !
 ! Formats
