@@ -285,7 +285,7 @@
       REAL                    :: X0I, XNI, Y0I, YNI, SXI, SYI,        &
                                  X, Y, FACTOR, EFAC, NODATA,          &
                                  XCFAC, XCOFF, YCFAC, YCOFF,          &
-                                 FILLVALUE, TIMEDELAY
+                                 FILLVALUE, TIMEDELAY, MIN_WIND
       REAL                    :: ACC = 0.05
 !
       REAL                    :: SCFAC(2), ADDOFF(2), RW(4)
@@ -555,6 +555,9 @@
          ELSE
             GOTO 810
          END IF ! NML_FORCING
+
+        MIN_WIND=REAL(NML_FORCING%MINWIND)
+
 
         ! Check grid asis/latlon
         IF (NML_FORCING%GRID%ASIS) THEN
@@ -2092,6 +2095,21 @@
                       END DO
                   END IF
 #endif
+
+!
+! ... Force minimum value on wind speed
+! 
+                IF (IFLD.EQ.3 .AND. MIN_WIND.GT.0) THEN
+                    DO IY=1,NY
+                      DO IX=1,NX
+                        IF (SQRT( FX(IX,IY)**2 + FY(IX,IY)**2).LT.MIN_WIND .AND. SQRT( FX(IX,IY)**2 + FY(IX,IY)**2).GT.0) THEN
+                          FACTOR = SQRT(MIN_WIND/SQRT( FX(IX,IY)**2 + FY(IX,IY)**2))
+                          FX(IX,IY) = FACTOR * FX(IX,IY)
+                          FY(IX,IY) = FACTOR * FY(IX,IY)
+                        END IF
+                      END DO
+                    END DO
+                END IF
 !
 ! ... Currents, correct for velocity or energy conservation
 !
