@@ -1,0 +1,25 @@
+name: Bump version
+on:
+  push:
+    branches:
+      - noresm
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name
+        id: check_branch_name
+        run: |
+          prefix=""
+          [ "${{ github.ref_name }}" == "noresm" ] && prefix="ww3_noresm"
+          echo "TAG_PREFIX=$prefix" >> $GITHUB_OUTPUT
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v5.5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          create_annotated_tag: true
+          default_bump: patch
+          release_branches: noresm
+          dry_run: false
+          tag_prefix: "${{ steps.check_branch_name.outputs.TAG_PREFIX }}"
