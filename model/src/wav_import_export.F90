@@ -142,7 +142,7 @@ contains
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lamult' )
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes')
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes')
-      !call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hstokes')
+     !call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hstokes')
     else
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_z0')
     end if
@@ -154,7 +154,7 @@ contains
     ! will be implemented soon based on receiving USSP and USSPF from the coupler instead of the mod_def file. This will
     ! also ensure compatibility with the ocean component since ocean will also receive these from the coupler.
     if (wav_coupling_to_cice) then
-      call fldlist_add(fldsFrWav_num, fldsFrWav, 'wave_elevation_spectrum', &
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_elevation_spectrum', &
            ungridded_lbound=1, ungridded_ubound=nwav_elev_spectrum)
     end if
 
@@ -729,7 +729,7 @@ contains
       call CalcRadstr2D( va, sxxn, sxyn, syyn)
     end if
     if (wav_coupling_to_cice) then
-      call state_getfldptr(exportState, 'wave_elevation_spectrum', wave_elevation_spectrum, rc=rc)
+      call state_getfldptr(exportState, 'Sw_elevation_spectrum', wave_elevation_spectrum, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       ! Initialize wave elevation spectrum
       wave_elevation_spectrum(:,:) = fillvalue
@@ -752,10 +752,8 @@ contains
             call init_get_isea(isea, jsea)
             ix  = mapsf(isea,1)
             iy  = mapsf(isea,2)
-            !if (mapsta(iy,ix) == 1) then
-              sw_pstokes_x(ib,jsea) = ussp(jsea,ib)
-              sw_pstokes_y(ib,jsea) = ussp(jsea,nk+ib)
-            !end if
+            sw_pstokes_x(ib,jsea) = ussp(jsea,ib)
+            sw_pstokes_y(ib,jsea) = ussp(jsea,nk+ib)
           enddo
         end do
       end if
@@ -1240,7 +1238,7 @@ contains
     do ik = 1,nwav_elev_spectrum
       ab = 0.0
       do ith = 1, nth
-        do jsea = 1,nseal
+        do jsea = 1,nseal_cpl
           ab(jsea) = ab(jsea) + a(ith,ik,jsea)
         end do
       end do

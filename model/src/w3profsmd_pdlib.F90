@@ -6416,7 +6416,7 @@ CONTAINS
 
     REAL, PARAMETER   :: ONESIXTH = 1.0/6.0
     REAL, PARAMETER   :: ZERO = 0.0
-    REAL, PARAMETER   :: THR = 1E-12
+    REAL, PARAMETER   :: THR = 1.0E-12
 
     INTEGER           :: IK, ISP, ITH, IE, IP, IT, IBI, NI(3), I1, I2, I3, JX, IERR, IP_GLOB, ISEA
     !
@@ -6435,20 +6435,20 @@ CONTAINS
           CALL WAVNU3 (SIG(IK), DW(iplg(IP)), KSIG(IP), CGSIG(IP))
         ENDDO
 
-        DO ITH = 1, NTH
-          DO IP = 1, NPA
+        DO IP = 1, NPA
+          DO ITH = 1, NTH
             ISEA = IPLG(IP)
             CXX(ITH,IP) = CGSIG(IP) * FACX * ECOS(ITH) / CLATS(ISEA)
             CYY(ITH,IP) = CGSIG(IP) * FACY * ESIN(ITH)
-          ENDDO
+          ENDDO ! ith
           IF (FLCUR) THEN
-            DO IP = 1, NPA
+            DO ITH = 1, NTH
               ISEA = IPLG(IP)
               IF (IOBP_LOC(IP) .GT. 0) THEN
                 CXX(ITH,IP) = CXX(ITH,IP) + FACX * CX(ISEA)/CLATS(ISEA)
                 CYY(ITH,IP) = CYY(ITH,IP) + FACY * CY(ISEA)
               ENDIF
-            ENDDO
+            ENDDO !ith
           ENDIF
         ENDDO
 
@@ -6507,7 +6507,7 @@ CONTAINS
 
         DTMAXEXP = 1.E10
         DTMAX    = 1.E10
-        DO IP = 1, np
+        DO IP = 1, npa
           IF (IOBP_LOC(IP) .EQ. 1 .OR. FSBCCFL) THEN
             DO ITH = 1, NTH
               DTMAXEXP(ITH) = PDLIB_SI(IP)/MAX(THR,KKSUM(ITH,IP)*IOBDP_LOC(IP))
@@ -6531,20 +6531,21 @@ CONTAINS
           ITER(IK) = ABS(NINT(CFLXY))
         END IF
 
-        DO IP = 1, np
+        DO IP = 1, npa
           DTSI(IP) = DBLE(DTMAXGL)/DBLE(ITER(IK))/PDLIB_SI(IP) ! Some precalculations for the time integration.
         END DO
 
       END IF ! LCALC
 
       ! Exact and convert Wave Action - should be some subroutine function or whatever
-      DO ITH = 1, NTH
-        ISP = ITH + (IK-1) * NTH
-        DO IP = 1, NPA
-          U(ITH,IP)  = VA(ISP,IP) / CGSIG(IP) * CLATS(IPLG(IP))
-        ENDDO
-      ENDDO
-      UOLD = U
+      do ip = 1,npa
+        isp = 0
+        do ith = 1,nth
+          isp = ith + (ik-1)*nth
+          u(ith,ip) = va(isp,ip) / cgsig(ip) * clats(iplg(ip))
+        enddo
+      enddo
+      CALL PDLIB_exchange2DREAL(U)
 
       DO IT = 1, ITER(IK)
         ST = ZERO
@@ -6557,15 +6558,14 @@ CONTAINS
             ST(ITH,NI(3)) = ST(ITH,NI(3)) + KELEM3(ITH,IE,IK) * (U(ITH,NI(3)) - UTILDE(ITH)) ! the 2nd term are the theta values of each node ...
           ENDDO
         END DO ! IE
-        DO IP = 1, NP
+        DO IP = 1, NPA
           DO ITH = 1, NTH
-            ISP = ITH + (IK-1) * NTH
             U(ITH,IP) = MAX(ZERO,U(ITH,IP)-DTSI(IP)*ST(ITH,IP)*(1-IOBPA_LOC(IP)))*IOBPD_LOC(ITH,IP)*IOBDP_LOC(IP)
 #ifdef W3_REF1
             IF (REFPARS(3).LT.0.5.AND.IOBPD_LOC(ITH,IP).EQ.0.AND.IOBPA_LOC(IP).EQ.0) U(ITH,IP) = UOLD(ITH,IP) ! restores reflected boundary values
 #endif
           ENDDO
-        ENDDO ! IE
+        ENDDO ! IP
 
         IF ( FLBPI ) THEN
           DO ITH = 1, NTH
@@ -6594,12 +6594,13 @@ CONTAINS
       ENDDO ! IT
 
       ! Exact and convert Wave Action
-      DO ITH = 1, NTH
-        ISP = ITH + (IK-1) * NTH
-        DO IP = 1, NPA
-          VA(ISP,IP)  = U(ITH,IP) * CGSIG(IP) / CLATS(IPLG(IP))
-        ENDDO
-      ENDDO
+      do ip = 1,npa
+        isp = 0
+        do ith = 1,nth
+          isp = ith + (ik-1)*nth
+          va(isp,ip) = u(ith,ip) * cgsig(ip) / clats(iplg(ip))
+        end do
+      end do
 
     ENDDO ! IK
 
@@ -6655,7 +6656,7 @@ CONTAINS
 #endif
     USE W3GDATMD, only:  NTH, NK
 #ifdef W3_PDLIB
-    USE YOWNODEPOOL, only: np
+    USE YOWNODEPOOL, only: np, npa
     USE YOWELEMENTPOOL, only: ne
 #endif
     IMPLICIT NONE
@@ -6663,7 +6664,7 @@ CONTAINS
 
     ALLOCATE(FLALL1(NTH,NE,NK), FLALL2(NTH,NE,NK), FLALL3(NTH,NE,NK))
     ALLOCATE(KELEM1(NTH,NE,NK), KELEM2(NTH,NE,NK), KELEM3(NTH,NE,NK))
-    ALLOCATE(NM(NTH,NE,NK), DTSI(NP))
+    ALLOCATE(NM(NTH,NE,NK), DTSI(NPA))
     ALLOCATE(ITER(NK))
 
     !/ ------------------------------------------------------------------- /
