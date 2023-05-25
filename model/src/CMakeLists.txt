@@ -86,11 +86,12 @@ message(STATUS "list of switch files is : ${switch_files}")
 # Now check in SourceMods to see if the file should be used instead
 #-------------------------
 list(APPEND srcfiles ${ftn_src} ${switch_files})
-foreach(file srcfiles )
-  if(EXISTS "${CASEROOT}/SourceMods/src.ww3/${file}")
+foreach(file ${srcfiles} )
+  if(EXISTS "${CASEROOT}/SourceMods/src.ww3dev/${file}")
+    message("Using ${file} from ${CASEROOT}/SourceMods/src.ww3dev")
     list(REMOVE_ITEM srcfiles ${file})
-    list(APPEND srcfiles "${CASEROOT}/SourceMods/src.dww3/${file}")
-    message("Using ${file} from ${CASEROOT}/SourceMods/src.ww3")
+    list(APPEND srcfiles "${CASEROOT}/SourceMods/src.ww3dev/${file}")
+    message(STATUS "Using ${file} from ${CASEROOT}/SourceMods/src.ww3dev")
   endif()
 endforeach()
 

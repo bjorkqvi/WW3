@@ -142,7 +142,7 @@ contains
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lamult' )
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes')
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes')
-     !call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hstokes')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hstokes')
     else
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_z0')
     end if
@@ -588,7 +588,7 @@ contains
     use w3gdatmd      , only : nseal, mapsf, MAPSTA, USSPF, NK, w3setg
     use w3iogomd      , only : CALC_U3STOKES
 #ifdef W3_CESMCOUPLED
-    use w3adatmd      , only : LAMULT
+    use w3adatmd      , only : LAMULT, LASLPJ
 #else
     use wmmdatmd      , only : mdse, mdst, wmsetm
 #endif
@@ -618,6 +618,7 @@ contains
     real(r8), pointer :: sw_lamult(:)
     real(r8), pointer :: sw_ustokes(:)
     real(r8), pointer :: sw_vstokes(:)
+    real(r8), pointer :: sw_hstokes(:)
 
     ! d2 is location, d1 is frequency  - nwav_elev_spectrum frequencies will be used
     real(r8), pointer :: wave_elevation_spectrum(:,:)
@@ -689,6 +690,21 @@ contains
           sw_vstokes(jsea) = USSY(jsea)
         else
           sw_vstokes(jsea) = 0.
+        endif
+      enddo
+    end if
+    if (state_fldchk(exportState, 'Sw_hstokes')) then
+      call state_getfldptr(exportState, 'Sw_hstokes', sw_hstokes, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_hstokes(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_hstokes(jsea) = LASLPJ(jsea)
+        else
+          sw_hstokes(jsea) = 0.
         endif
       enddo
     end if
