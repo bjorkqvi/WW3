@@ -1115,9 +1115,14 @@ CONTAINS
     !----------------------------------------------
     DO K=KA1, KA2-1
       AVG=SUM(INSPC(K,:))/MAX(REAL(NTH),1.)
-      DO T=1,NTH
-        INSPC(K,T)=BT(K)*INSPC(K,T)/TPI/(WN2(K)**3.0)/AVG
-      ENDDO
+      if (AVG == 0.) then
+         write(6,*)'WARNING: SUM(INSPC(K,:)) is zero for K = ',K
+      end if
+      if (AVG /= 0.) then
+         DO T=1,NTH
+            INSPC(K,T)=BT(K)*INSPC(K,T)/TPI/(WN2(K)**3.0)/AVG
+         ENDDO
+      end if
     ENDDO
     !-----------------------------------------------------------
     ! Region B, Saturation level left flat while spectrum turned
@@ -1133,10 +1138,16 @@ CONTAINS
         ENDIF
       ENDDO
       AVG=SUM(NORMSPC)/MAX(REAL(NTH),1.)
-      DO T=1, NTH
-        INSPC(K,T) = SAT * NORMSPC(T)/TPI/(WN2(K)**3.0)/AVG
-      ENDDO
+      if (AVG == 0.) then
+         write(6,*)'WARNING: SUM(NORMSPC) is zero for K = ',K
+      end if
+      if (AVG /= 0.) then
+         DO T=1, NTH
+            INSPC(K,T) = SAT * NORMSPC(T)/TPI/(WN2(K)**3.0)/AVG
+         ENDDO
+      end if
     ENDDO
+
     DO T=1, NTH
       angdif=th(t)-wnddir
       IF (COS(ANGDIF) .GT. 0.0) THEN
@@ -1146,11 +1157,16 @@ CONTAINS
       ENDIF
     ENDDO
     AVG=SUM(NORMSPC)/MAX(REAL(NTH),1.)!1./4.
-    DO K=KA3+1, NKT
-      DO T=1, NTH
-        INSPC(K,T)=NORMSPC(T)*(SAT)/TPI/(WN2(K)**3.0)/AVG
-      ENDDO
-    ENDDO
+    if (AVG == 0.) then
+       write(6,*)'WARNING: SUM(NORMSPC) is zero'
+    end if
+    if (AVG /= 0.) then
+       DO K=KA3+1, NKT
+          DO T=1, NTH
+             INSPC(K,T)=NORMSPC(T)*(SAT)/TPI/(WN2(K)**3.0)/AVG
+          ENDDO
+       ENDDO
+    end if
     DEALLOCATE(ANGLE1)
     !
     ! Formats
