@@ -1117,8 +1117,7 @@ CONTAINS
       AVG=SUM(INSPC(K,:))/MAX(REAL(NTH),1.)
       if (AVG == 0.) then
          write(6,*)'WARNING: SUM(INSPC(K,:)) is zero for K = ',K
-      end if
-      if (AVG /= 0.) then
+      else
          DO T=1,NTH
             INSPC(K,T)=BT(K)*INSPC(K,T)/TPI/(WN2(K)**3.0)/AVG
          ENDDO
@@ -1140,8 +1139,7 @@ CONTAINS
       AVG=SUM(NORMSPC)/MAX(REAL(NTH),1.)
       if (AVG == 0.) then
          write(6,*)'WARNING: SUM(NORMSPC) is zero for K = ',K
-      end if
-      if (AVG /= 0.) then
+      else
          DO T=1, NTH
             INSPC(K,T) = SAT * NORMSPC(T)/TPI/(WN2(K)**3.0)/AVG
          ENDDO
@@ -1159,8 +1157,7 @@ CONTAINS
     AVG=SUM(NORMSPC)/MAX(REAL(NTH),1.)!1./4.
     if (AVG == 0.) then
        write(6,*)'WARNING: SUM(NORMSPC) is zero'
-    end if
-    if (AVG /= 0.) then
+    else
        DO K=KA3+1, NKT
           DO T=1, NTH
              INSPC(K,T)=NORMSPC(T)*(SAT)/TPI/(WN2(K)**3.0)/AVG
