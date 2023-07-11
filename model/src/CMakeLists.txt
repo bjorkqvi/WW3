@@ -40,14 +40,14 @@ message("ESMF_F90COMPILEPATHS:   ${ESMF_F90COMPILEPATHS}")
 #-------------------------
 # Determine switches
 #-------------------------
-list(APPEND switches "CESMCOUPLED" "NCO" "DIST" "MPI" "PR3" "UQ" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB") 
+list(APPEND switches "CESMCOUPLED" "NCO" "DIST" "MPI" "PR3" "UQ" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB" "IC4") 
 
-# TODO: need to enamble IC4 with the unstructured implemention  
 if (DEFINED USE_UNSTRUCT)
-  list(APPEND switches "IC0" "PDLIB" "METIS")
+  list(APPEND switches "PDLIB" "METIS")
 else()
-  list(APPEND switches "IC4" "OMPG"  "OMPH") 
+  list(APPEND switches "OMPG"  "OMPH") 
 endif()
+
 
 #-------------------------
 # Include list of src files to make file more readable
@@ -78,9 +78,14 @@ endif()
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_switches.cmake)
 check_switches("${switches}" switch_files)
 
+message(STATUS "----SWITCHES-----")
+message(STATUS "switches are : ${switches}")
+message(STATUS "-----------------")
+
 message(STATUS "----status of source files-----")
 message(STATUS "list of always source files is : ${ftn_src}")
 message(STATUS "list of switch files is : ${switch_files}")
+message(STATUS "-----------------")
 
 #-------------------------
 # Now check in SourceMods to see if the file should be used instead
