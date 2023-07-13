@@ -40,10 +40,10 @@ message("ESMF_F90COMPILEPATHS:   ${ESMF_F90COMPILEPATHS}")
 #-------------------------
 # Determine switches
 #-------------------------
-list(APPEND switches "CESMCOUPLED" "DIST" "MPI" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB" "IC4")
+list(APPEND switches "CESMCOUPLED" "DIST" "MPI" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB" "IC4" "NCO")
 
 if (DEFINED USE_PR3)
-  list(APPEND switches PR3 UQ "NCO" )
+  list(APPEND switches PR3 UQ)
 elseif (DEFINED USE_PR1)
   list(APPEND switches PR1)
 else()
