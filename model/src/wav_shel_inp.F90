@@ -167,6 +167,7 @@ contains
     character(len=80)   :: linein
     character(len=30)   :: ofile ! w3_cou only
     character(len=8)    :: words(7)=''
+    character(len=256)  :: filename
     logical             :: flflg, flhom, tflagi, prtfrm, flgnml, flh(-7:10)
     integer             :: thrlev = 1
     integer             :: time0(2), timen(2), ttime(2)
@@ -259,29 +260,23 @@ contains
     !--------------------
 
 #ifndef W3_CESMCOUPLED
-    inquire(file=trim(fnmpre)//"ww3_shel.nml", exist=flgnml)
+    filename = trim(fnmpre)//"ww3_shel.nml"
 #else
-    inquire(file=trim(fnmpre)//"wav_in", exist=flgnml)
+    filename = trim(fnmpre)//"wav_in"
 #endif
 
+    inquire(file=trim(filename), exist=flgnml)
+
     if (flgnml) then
-#ifndef W3_CESMCOUPLED
-      open(newunit=ndsi, file=trim(fnmpre)//"ww3_shel.nml", status='old', iostat=ierr)
-#else
-      open(newunit=ndsi, file=trim(fnmpre)//"wav_in", status='old', iostat=ierr)
-#endif
+
+       open(newunit=ndsi, file=trim(filename), status='old', iostat=ierr)
 
       !--------------------
       ! Read namelist
       !--------------------
 
-#ifndef W3_CESMCOUPLED
-      call w3nmlshel (mpi_comm, ndsi, trim(fnmpre)//'ww3_shel.nml', nml_domain, nml_input, &
+      call w3nmlshel (mpi_comm, ndsi, trim(filename), nml_domain, nml_input, &
            nml_output_type, nml_output_date, nml_homog_count, nml_homog_input, ierr)
-#else
-      call w3nmlshel (mpi_comm, ndsi, trim(fnmpre)//'wav_in', nml_domain, nml_input, &
-           nml_output_type, nml_output_date, nml_homog_count, nml_homog_input, ierr)
-#endif
 
       !--------------------
       ! 2.1 forcing flags
