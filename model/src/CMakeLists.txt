@@ -40,14 +40,22 @@ message("ESMF_F90COMPILEPATHS:   ${ESMF_F90COMPILEPATHS}")
 #-------------------------
 # Determine switches
 #-------------------------
-list(APPEND switches "CESMCOUPLED" "NCO" "DIST" "MPI" "PR3" "UQ" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB") 
+list(APPEND switches "CESMCOUPLED" "DIST" "MPI" "FLX0" "SEED" "ST4" "STAB0" "NL1" "BT1" "DB1" "MLIM" "FLD2" "TR0" "BS0" "RWND" "WNX1" "WNT1" "CRX1" "CRT1" "O0" "O1" "O2" "O3" "O4" "O5" "O6" "O7" "O14" "O15" "IS0" "REF0" "NOGRB" "IC4" "NCO")
 
-# TODO: need to enamble IC4 with the unstructured implemention  
-if (DEFINED USE_UNSTRUCT)
-  list(APPEND switches "IC0" "PDLIB" "METIS")
+if (DEFINED USE_PR3)
+  list(APPEND switches PR3 UQ)
+elseif (DEFINED USE_PR1)
+  list(APPEND switches PR1)
 else()
-  list(APPEND switches "IC4" "OMPG"  "OMPH") 
+  message(FATAL_ERROR "either USE_PR3 or USE_PR1 must be defined")
 endif()
+
+if (DEFINED USE_UNSTRUCT)
+  list(APPEND switches "PDLIB" "METIS")
+else()
+  list(APPEND switches "OMPG"  "OMPH")
+endif()
+
 
 #-------------------------
 # Include list of src files to make file more readable
@@ -75,12 +83,14 @@ endif()
 # Determine switch specific files
 # Include check_switches as a function for less verbosity in this CMakeLists.txt
 #-------------------------
+message(STATUS "switches are : ${switches}")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_switches.cmake)
 check_switches("${switches}" switch_files)
 
-message(STATUS "----status of source files-----")
+message(STATUS "---")
 message(STATUS "list of always source files is : ${ftn_src}")
 message(STATUS "list of switch files is : ${switch_files}")
+message(STATUS "---")
 
 #-------------------------
 # Now check in SourceMods to see if the file should be used instead
