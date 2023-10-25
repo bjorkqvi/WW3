@@ -86,11 +86,12 @@ contains
   !!
   !> @author mvertens@ucar.edu, Denise.Worthen@noaa.gov
   !> @date 01-05-2022
-  subroutine advertise_fields(importState, ExportState, flds_scalar_name, rc)
+  subroutine advertise_fields(importState, ExportState, flds_scalar_name, aux_flds_to_cmeps, rc)
     ! input/output variables
     type(ESMF_State)               :: importState
     type(ESMF_State)               :: exportState
     character(len=*) , intent(in)  :: flds_scalar_name
+    logical          , intent(in)  :: aux_flds_to_cmeps
     integer          , intent(out) :: rc
 
     ! local variables
@@ -148,6 +149,17 @@ contains
     end if
     call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pstokes_x', ungridded_lbound=1, ungridded_ubound=3)
     call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pstokes_y', ungridded_lbound=1, ungridded_ubound=3)
+
+    if (aux_flds_to_cmeps) then
+       ! fields to mediator added only for averged time history capability in mediator history files
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wlm')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v')
+    end if
 
     ! AA TODO: In the above fldlist_add calls, we are passing hardcoded ungridded_ubound values (3) because, USSPF(2)
     ! is not initialized yet. It is set during w3init which gets called at a later phase (realize). A permanent solution
@@ -580,7 +592,7 @@ contains
     !---------------------------------------------------------------------------
 
     use wav_kind_mod,   only : R8 => SHR_KIND_R8
-    use w3adatmd      , only : USSX, USSY, USSP
+    use w3adatmd      , only : USSX, USSY, USSP, HS, WLM, THM, THP0, FP0, TUSX, TUSY
     use w3adatmd      , only : w3seta
     use w3idatmd      , only : w3seti
     use w3wdatmd      , only : va, w3setw
@@ -604,6 +616,7 @@ contains
     real(R8)          :: fillvalue = zero                      ! special missing value
 #endif
     type(ESMF_State)  :: exportState
+    type(ESMF_State)  :: importState ! needed if aux history is output by cmeps
     integer           :: n, jsea, isea, ix, iy, ib
 
     real(r8), pointer :: z0rlen(:)
@@ -620,6 +633,18 @@ contains
     real(r8), pointer :: sw_vstokes(:)
     real(r8), pointer :: sw_hstokes(:)
 
+    real(r8), pointer :: sw_hs(:)
+    real(r8), pointer :: sw_wlm(:)
+    real(r8), pointer :: sw_thm(:)
+    real(r8), pointer :: sw_thp0(:)
+    real(r8), pointer :: sw_fp0(:)
+    real(r8), pointer :: sw_u(:)
+    real(r8), pointer :: sw_v(:)
+    real(r8), pointer :: sw_tusx(:)
+    real(r8), pointer :: sw_tusy(:)
+    real(r8), pointer :: sa_u(:)
+    real(r8), pointer :: sa_v(:)
+
     ! d2 is location, d1 is frequency  - nwav_elev_spectrum frequencies will be used
     real(r8), pointer :: wave_elevation_spectrum(:,:)
 
@@ -633,7 +658,7 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
 
     ! Get export state
-    call NUOPC_ModelGet(gcomp, exportState=exportState, rc=rc)
+    call NUOPC_ModelGet(gcomp, exportState=exportState, importState=importState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 #ifndef W3_CESMCOUPLED
@@ -774,6 +799,147 @@ contains
         end do
       end if
     endif
+
+    ! -----------------------------------------------
+    ! for time averaged otuput to CMEPS auxiliary history file(s)
+    ! -----------------------------------------------
+
+    ! Significant wave height
+    if (state_fldchk(exportState, 'Sw_hs')) then
+       call state_getfldptr(exportState, 'Sw_hs', sw_hs, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_hs(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_hs(jsea) = HS(jsea)
+          else
+             sw_hs(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Mean wave length
+    if (state_fldchk(exportState, 'Sw_wlm')) then
+       call state_getfldptr(exportState, 'Sw_wlm', sw_wlm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_wlm(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_wlm(jsea) = WLM(jsea)
+          else
+             sw_wlm(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Mean wave direction
+    if (state_fldchk(exportState, 'Sw_thm')) then
+       call state_getfldptr(exportState, 'Sw_thm', sw_thm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_thm(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_thm(jsea) = THM(jsea)
+          else
+             sw_thm(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Peak direction
+    if (state_fldchk(exportState, 'Sw_thp0')) then
+       call state_getfldptr(exportState, 'Sw_thp0', sw_thp0, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_thp0(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_thp0(jsea) = THP0(jsea)
+          else
+             sw_thp0(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Peak frequency
+    if (state_fldchk(exportState, 'Sw_fp0')) then
+       call state_getfldptr(exportState, 'Sw_fp0', sw_fp0, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_fp0(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_fp0(jsea) = FP0(jsea)
+          else
+             sw_fp0(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Input zonal wind
+    if (state_fldchk(exportState, 'Sw_u') .and. state_fldchk(importState, 'Sa_u')) then
+       call state_getfldptr(importState, 'Sa_u', sa_u, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(exportState, 'Sw_u', sw_u, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_u(:) = sa_u(:)
+    end if
+
+    ! Input meridional wind
+    if (state_fldchk(exportState, 'Sw_v') .and. state_fldchk(importState, 'Sa_v')) then
+       call state_getfldptr(importState, 'Sa_v', sa_v, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(exportState, 'Sw_v', sw_v, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_v(:) = sa_v(:)
+    end if
+
+    ! Stokes transfer vector zonal
+    if (state_fldchk(exportState, 'Sw_tusx')) then
+       call state_getfldptr(exportState, 'Sw_tusx', sw_tusx, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_tusx(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_tusx(jsea) = TUSX(jsea)
+          else
+             sw_tusx(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Stokes transfer vector meridional
+    if (state_fldchk(exportState, 'Sw_tusy')) then
+       call state_getfldptr(exportState, 'Sw_tusy', sw_tusy, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_tusy(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_tusy(jsea) = TUSY(jsea)
+          else
+             sw_tusy(jsea) = 0.
+          endif
+       enddo
+    end if
 
     if (dbug_flag > 5) then
       call state_diagnose(exportState, 'at export ', rc=rc)
@@ -1046,8 +1212,8 @@ contains
       ix = mapsf(isea,1)
       iy = mapsf(isea,2)
       if ( firstCall ) then
-        if(( runtype == 'initial'  .and.     mapsta(iy,ix)  == 1 ) .or. &
-             ( runtype == 'continue' .and. abs(mapsta(iy,ix)) == 1 )) then
+        if (( runtype == 'initial'  .and.     mapsta(iy,ix)  == 1 ) .or. &
+            ( runtype == 'continue' .and. abs(mapsta(iy,ix)) == 1 )) then
           charn(jsea) = zero
           llws(:) = .true.
           ustar = zero

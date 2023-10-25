@@ -234,6 +234,7 @@ contains
     ! local variables
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
+    logical           :: aux_flds_to_cmeps
     character(len=CL) :: cvalue
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -369,7 +370,18 @@ contains
     write(logmsg,'(A,l)') trim(subname)//': Wave wav_coupling_to_cice setting is ',wav_coupling_to_cice
     call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
 
-    call advertise_fields(importState, exportState, flds_scalar_name, rc)
+    ! Determine if auxiliary fields will be sent to cmeps for use in mediator history output
+    aux_flds_to_cmeps = .false.
+    call NUOPC_CompAttributeGet(gcomp, name='histaux_wav2med_file1_enabled', value=cvalue, isPresent=isPresent, &
+         isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) aux_flds_to_cmeps
+    end if
+    write(logmsg,'(A,l)') trim(subname)//': Wave aux_flds_to_cmeps is ',aux_flds_to_cmeps
+    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
+
+    call advertise_fields(importState, exportState, flds_scalar_name, aux_flds_to_cmeps, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
@@ -609,7 +621,7 @@ contains
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
     ! Determine time attributes for history output
-    call ESMF_TimeGet( esmfTime, timeString=time_origin, calendar=calendar, rc=rc )
+    call ESMF_TimeGet( startTime, timeString=time_origin, calendar=calendar, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     time_origin = 'seconds since '//time_origin(1:10)//' '//time_origin(12:19)
     !call ESMF_ClockGet(clock, calendar=calendar)
