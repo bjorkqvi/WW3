@@ -86,17 +86,17 @@ contains
   !!
   !> @author mvertens@ucar.edu, Denise.Worthen@noaa.gov
   !> @date 01-05-2022
-  subroutine advertise_fields(importState, ExportState, flds_scalar_name, rc)
+  subroutine advertise_fields(importState, ExportState, flds_scalar_name, aux_flds_to_cmeps, rc)
     ! input/output variables
     type(ESMF_State)               :: importState
     type(ESMF_State)               :: exportState
     character(len=*) , intent(in)  :: flds_scalar_name
+    logical          , intent(in)  :: aux_flds_to_cmeps
     integer          , intent(out) :: rc
 
     ! local variables
     integer          :: n, num
     character(len=2) :: fvalue
-    logical          :: aux_flds_to_cmeps = .true.
     character(len=*), parameter :: subname='(wav_import_export:advertise_fields)'
     !-------------------------------------------------------------------------------
 
