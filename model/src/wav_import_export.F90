@@ -86,17 +86,17 @@ contains
   !!
   !> @author mvertens@ucar.edu, Denise.Worthen@noaa.gov
   !> @date 01-05-2022
-  subroutine advertise_fields(importState, ExportState, flds_scalar_name, aux_flds_to_cmeps, rc)
+  subroutine advertise_fields(importState, ExportState, flds_scalar_name, rc)
     ! input/output variables
     type(ESMF_State)               :: importState
     type(ESMF_State)               :: exportState
     character(len=*) , intent(in)  :: flds_scalar_name
-    logical          , intent(in)  :: aux_flds_to_cmeps
     integer          , intent(out) :: rc
 
     ! local variables
     integer          :: n, num
     character(len=2) :: fvalue
+    logical          :: aux_flds_to_cmeps = .true.
     character(len=*), parameter :: subname='(wav_import_export:advertise_fields)'
     !-------------------------------------------------------------------------------
 
@@ -153,12 +153,20 @@ contains
     if (aux_flds_to_cmeps) then
        ! fields to mediator added only for averged time history capability in mediator history files
        call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wlm')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs0')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs1')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir0')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir1')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm10')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm11')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_Tm1')
        call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm')
        call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0')
        call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0')
        call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u')
        call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusx')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusy')
     end if
 
     ! AA TODO: In the above fldlist_add calls, we are passing hardcoded ungridded_ubound values (3) because, USSPF(2)
@@ -592,11 +600,12 @@ contains
     !---------------------------------------------------------------------------
 
     use wav_kind_mod,   only : R8 => SHR_KIND_R8
-    use w3adatmd      , only : USSX, USSY, USSP, HS, WLM, THM, THP0, FP0, TUSX, TUSY
+    use w3adatmd      , only : USSX, USSY, USSP, HS, THM, FP0, THP0, TUSX, TUSY
+    use w3adatmd      , only : PHS, PDIR, T01, PT1
     use w3adatmd      , only : w3seta
     use w3idatmd      , only : w3seti
     use w3wdatmd      , only : va, w3setw
-    use w3odatmd      , only : w3seto, naproc, iaproc
+    use w3odatmd      , only : w3seto, naproc, iaproc, NOSWLL
     use w3gdatmd      , only : nseal, mapsf, MAPSTA, USSPF, NK, w3setg
     use w3iogomd      , only : CALC_U3STOKES
 #ifdef W3_CESMCOUPLED
@@ -604,6 +613,7 @@ contains
 #else
     use wmmdatmd      , only : mdse, mdst, wmsetm
 #endif
+    use constants     , only : UNDEF
 
     ! input/output/variables
     type(ESMF_GridComp)            :: gcomp
@@ -617,7 +627,7 @@ contains
 #endif
     type(ESMF_State)  :: exportState
     type(ESMF_State)  :: importState ! needed if aux history is output by cmeps
-    integer           :: n, jsea, isea, ix, iy, ib
+    integer           :: n, jsea, isea, ix, iy, ib, ik
 
     real(r8), pointer :: z0rlen(:)
     real(r8), pointer :: charno(:)
@@ -634,7 +644,13 @@ contains
     real(r8), pointer :: sw_hstokes(:)
 
     real(r8), pointer :: sw_hs(:)
-    real(r8), pointer :: sw_wlm(:)
+    real(r8), pointer :: sw_phs0(:)
+    real(r8), pointer :: sw_phs1(:)
+    real(r8), pointer :: sw_pdir0(:)
+    real(r8), pointer :: sw_pdir1(:)
+    real(r8), pointer :: sw_pTm10(:)
+    real(r8), pointer :: sw_pTm11(:)
+    real(r8), pointer :: sw_Tm1(:)
     real(r8), pointer :: sw_thm(:)
     real(r8), pointer :: sw_thp0(:)
     real(r8), pointer :: sw_fp0(:)
@@ -651,6 +667,12 @@ contains
     ! Partitioned stokes drift
     real(r8), pointer :: sw_pstokes_x(:,:)
     real(r8), pointer :: sw_pstokes_y(:,:)
+
+    type(ESMF_Clock) :: clock
+    type(ESMF_Time)  :: currtime, nexttime
+    integer          :: yr,mon,day,sec    ! time units
+    integer          :: yr_next,mon_next,day_next,sec_next    ! time units
+
     character(len=*), parameter :: subname='(wav_import_export:export_fields)'
     !---------------------------------------------------------------------------
 
@@ -660,6 +682,19 @@ contains
     ! Get export state
     call NUOPC_ModelGet(gcomp, exportState=exportState, importState=importState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_GridCompGet(gcomp, exportState=exportstate, clock=clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(clock, currtime=currtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(nexttime, yy=yr_next, mm=mon_next, dd=day_next, s=sec_next, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    write(6,*)'DEBUG: mon_next,day_next,sec_next = ',mon_next,day_next,sec_next
 
 #ifndef W3_CESMCOUPLED
     call w3setg ( 1, mdse, mdst )
@@ -821,19 +856,129 @@ contains
        enddo
     end if
 
-    ! Mean wave length
-    if (state_fldchk(exportState, 'Sw_wlm')) then
-       call state_getfldptr(exportState, 'Sw_wlm', sw_wlm, rc=rc)
+    ! Wind Sea siginificant wave height = Partition 0 of HS
+    if (state_fldchk(exportState, 'Sw_phs0')) then
+       call state_getfldptr(exportState, 'Sw_phs0', sw_phs0, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_wlm(:) = fillvalue
+       sw_phs0(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_wlm(jsea) = WLM(jsea)
+            if (PHS(jsea,0) /= UNDEF) then
+              sw_phs0(jsea) = PHS(jsea,0)
+            end if
           else
-             sw_wlm(jsea) = 0.
+             sw_phs0(jsea) = 0.
+          endif
+       enddo
+    end if
+    ! Swell siginificant wave height = Partition 1 of HS if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_phs1')) then
+       call state_getfldptr(exportState, 'Sw_phs1', sw_phs1, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_phs1(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+            if (PHS(jsea,NOSWLL) /= UNDEF) then
+              sw_phs1(jsea) = PHS(jsea,NOSWLL)
+            end if
+          else
+             sw_phs1(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Wind sea mean direction = Partition 0 of DIR
+    if (state_fldchk(exportState, 'Sw_pdir0')) then
+       call state_getfldptr(exportState, 'Sw_pdir0', sw_pdir0, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_pdir0(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+            if (PDIR(jsea,0) /= UNDEF) then
+              sw_pdir0(jsea) = PDIR(jsea,0)
+            end if
+          else
+             sw_pdir0(jsea) = 0.
+          endif
+       enddo
+    end if
+    ! Swell mean direction = Partition 1 of DIR if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_pdir1')) then
+       call state_getfldptr(exportState, 'Sw_pdir1', sw_pdir1, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_pdir1(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (PDIR(jsea,NOSWLL) /= UNDEF) then
+               sw_pdir1(jsea) = PDIR(jsea,NOSWLL)
+             end if
+          else
+             sw_pdir1(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Wind sea first moment period
+    if (state_fldchk(exportState, 'Sw_pTm10')) then
+       call state_getfldptr(exportState, 'Sw_pTm10', sw_pTm10, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_pTm10(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (PT1(jsea,0) /= UNDEF) then
+               sw_pTm10(jsea) = PT1(jsea,0)
+             end if
+          else
+             sw_pTm10(jsea) = 0.
+          endif
+       enddo
+    end if
+    ! Swell first moment period, if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_pTm11')) then
+       call state_getfldptr(exportState, 'Sw_pTm11', sw_pTm11, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_pTm11(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (PT1(jsea,NOSWLL) /= UNDEF) then
+               sw_pTm11(jsea) = PT1(jsea,NOSWLL)
+            end if
+          else
+             sw_pTm11(jsea) = 0.
+          endif
+       enddo
+    end if
+    ! Mean first moment period
+    if (state_fldchk(exportState, 'Sw_Tm1')) then
+       call state_getfldptr(exportState, 'Sw_Tm1', sw_Tm1, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_Tm1(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             sw_Tm1(jsea) = T01(jsea)
+          else
+             sw_Tm1(jsea) = 0.
           endif
        enddo
     end if
@@ -907,7 +1052,7 @@ contains
        sw_v(:) = sa_v(:)
     end if
 
-    ! Stokes transfer vector zonal
+    ! Stokes transport u component
     if (state_fldchk(exportState, 'Sw_tusx')) then
        call state_getfldptr(exportState, 'Sw_tusx', sw_tusx, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -924,7 +1069,7 @@ contains
        enddo
     end if
 
-    ! Stokes transfer vector meridional
+    ! Stokes transport v component
     if (state_fldchk(exportState, 'Sw_tusy')) then
        call state_getfldptr(exportState, 'Sw_tusy', sw_tusy, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1854,4 +1999,5 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
 
   end subroutine readfromfile
+
 end module wav_import_export
