@@ -68,6 +68,21 @@ module wav_import_export
   character(*),parameter :: u_FILE_u = &            !< a character string for an ESMF log message
        __FILE__
 
+  real(r8), allocatable :: accum_sw_phs0(:)
+  integer , allocatable :: counter_sw_phs0(:)
+  real(r8), allocatable :: accum_sw_phs1(:)
+  integer , allocatable :: counter_sw_phs1(:)
+
+  real(r8), allocatable :: accum_sw_pdir0(:)
+  integer , allocatable :: counter_sw_pdir0(:)
+  real(r8), allocatable :: accum_sw_pdir1(:)
+  integer , allocatable :: counter_sw_pdir1(:)
+
+  real(r8), allocatable :: accum_sw_pTm10(:)
+  integer , allocatable :: counter_sw_pTm10(:)
+  real(r8), allocatable :: accum_sw_pTm11(:)
+  integer , allocatable :: counter_sw_pTm11(:)
+
   !===============================================================================
 contains
   !===============================================================================
@@ -694,8 +709,6 @@ contains
     call ESMF_TimeGet(nexttime, yy=yr_next, mm=mon_next, dd=day_next, s=sec_next, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    write(6,*)'DEBUG: mon_next,day_next,sec_next = ',mon_next,day_next,sec_next
-
 #ifndef W3_CESMCOUPLED
     call w3setg ( 1, mdse, mdst )
     call w3setw ( 1, mdse, mdst )
@@ -858,6 +871,13 @@ contains
 
     ! Wind Sea siginificant wave height = Partition 0 of HS
     if (state_fldchk(exportState, 'Sw_phs0')) then
+       if (.not. allocated(counter_sw_phs0)) then
+         allocate(counter_sw_phs0(nseal_cpl))
+         counter_sw_phs0(:) = 0
+         allocate(accum_sw_phs0(nseal_cpl))
+         accum_sw_phs0(:) = 0._r8
+       end if
+
        call state_getfldptr(exportState, 'Sw_phs0', sw_phs0, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        sw_phs0(:) = fillvalue
@@ -866,16 +886,33 @@ contains
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
+            ! Note that UNDEF is -999.9
             if (PHS(jsea,0) /= UNDEF) then
-              sw_phs0(jsea) = PHS(jsea,0)
+              counter_sw_phs0(jsea) = counter_sw_phs0(jsea) + 1
+              accum_sw_phs0(jsea) = accum_sw_phs0(jsea) + PHS(jsea,0)
+            end if
+            if (sec_next == 0) then
+              if (counter_sw_phs0(jsea) /= 0) then
+                sw_phs0(jsea) = accum_sw_phs0(jsea) / counter_sw_phs0(jsea)
+              end if
+              counter_sw_phs0(jsea) = 0
+              accum_sw_phs0(jsea) = 0._r8
             end if
           else
              sw_phs0(jsea) = 0.
           endif
        enddo
     end if
+
     ! Swell siginificant wave height = Partition 1 of HS if NOSWLL=1
     if (state_fldchk(exportState, 'Sw_phs1')) then
+       if (.not. allocated(counter_sw_phs1)) then
+         allocate(counter_sw_phs1(nseal_cpl))
+         counter_sw_phs1(:) = 0
+         allocate(accum_sw_phs1(nseal_cpl))
+         accum_sw_phs1(:) = 0._r8
+       end if
+
        call state_getfldptr(exportState, 'Sw_phs1', sw_phs1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        sw_phs1(:) = fillvalue
@@ -885,7 +922,15 @@ contains
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
             if (PHS(jsea,NOSWLL) /= UNDEF) then
-              sw_phs1(jsea) = PHS(jsea,NOSWLL)
+              counter_sw_phs1(jsea) = counter_sw_phs1(jsea) + 1
+              accum_sw_phs1(jsea) = accum_sw_phs1(jsea) + PHS(jsea,NOSWLL)
+            end if
+            if (sec_next == 0) then
+              if (counter_sw_phs1(jsea) /= 0) then
+                sw_phs1(jsea) = accum_sw_phs1(jsea) / counter_sw_phs1(jsea)
+              end if
+              counter_sw_phs1(jsea) = 0
+              accum_sw_phs1(jsea) = 0._r8
             end if
           else
              sw_phs1(jsea) = 0.
@@ -895,6 +940,13 @@ contains
 
     ! Wind sea mean direction = Partition 0 of DIR
     if (state_fldchk(exportState, 'Sw_pdir0')) then
+       if (.not. allocated(counter_sw_pdir0)) then
+         allocate(counter_sw_pdir0(nseal_cpl))
+         counter_sw_pdir0(:) = 0
+         allocate(accum_sw_pdir0(nseal_cpl))
+         accum_sw_pdir0(:) = 0._r8
+       end if
+
        call state_getfldptr(exportState, 'Sw_pdir0', sw_pdir0, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        sw_pdir0(:) = fillvalue
@@ -904,15 +956,31 @@ contains
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
             if (PDIR(jsea,0) /= UNDEF) then
-              sw_pdir0(jsea) = PDIR(jsea,0)
+              counter_sw_pdir0(jsea) = counter_sw_pdir0(jsea) + 1
+              accum_sw_pdir0(jsea) = accum_sw_pdir0(jsea) + PDIR(jsea,0)
+            end if
+            if (sec_next == 0) then
+              if (counter_sw_pdir0(jsea) /= 0) then
+                sw_pdir0(jsea) = accum_sw_pdir0(jsea) / counter_sw_pdir0(jsea)
+              end if
+              counter_sw_pdir0(jsea) = 0
+              accum_sw_pdir0(jsea) = 0._r8
             end if
           else
              sw_pdir0(jsea) = 0.
           endif
        enddo
     end if
+
     ! Swell mean direction = Partition 1 of DIR if NOSWLL=1
     if (state_fldchk(exportState, 'Sw_pdir1')) then
+       if (.not. allocated(counter_sw_pdir1)) then
+         allocate(counter_sw_pdir1(nseal_cpl))
+         counter_sw_pdir1(:) = 0
+         allocate(accum_sw_pdir1(nseal_cpl))
+         accum_sw_pdir1(:) = 0._r8
+       end if
+
        call state_getfldptr(exportState, 'Sw_pdir1', sw_pdir1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        sw_pdir1(:) = fillvalue
@@ -922,7 +990,15 @@ contains
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
              if (PDIR(jsea,NOSWLL) /= UNDEF) then
-               sw_pdir1(jsea) = PDIR(jsea,NOSWLL)
+               counter_sw_pdir1(jsea) = counter_sw_pdir1(jsea) + 1
+               accum_sw_pdir1(jsea) = accum_sw_pdir1(jsea) + PDIR(jsea,NOSWLL)
+             end if
+             if (sec_next == 0) then
+               if (counter_sw_pdir1(jsea) /= 0) then
+                 sw_pdir1(jsea) = accum_sw_pdir1(jsea) / counter_sw_pdir1(jsea)
+               end if
+               counter_sw_pdir1(jsea) = 0
+               accum_sw_pdir1(jsea) = 0._r8
              end if
           else
              sw_pdir1(jsea) = 0.
@@ -932,40 +1008,72 @@ contains
 
     ! Wind sea first moment period
     if (state_fldchk(exportState, 'Sw_pTm10')) then
-       call state_getfldptr(exportState, 'Sw_pTm10', sw_pTm10, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_pTm10(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             if (PT1(jsea,0) /= UNDEF) then
-               sw_pTm10(jsea) = PT1(jsea,0)
-             end if
-          else
-             sw_pTm10(jsea) = 0.
-          endif
-       enddo
+      if (.not. allocated(counter_sw_pTm10)) then
+        allocate(counter_sw_pTm10(nseal_cpl))
+        counter_sw_pTm10(:) = 0
+        allocate(accum_sw_pTm10(nseal_cpl))
+        accum_sw_pTm10(:) = 0._r8
+      end if
+
+      call state_getfldptr(exportState, 'Sw_pTm10', sw_pTm10, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_pTm10(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix = mapsf(isea,1)
+        iy = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          if (PT1(jsea,0) /= UNDEF) then
+            counter_sw_pTm10(jsea) = counter_sw_pTm10(jsea) + 1
+            accum_sw_pTm10(jsea) = accum_sw_pTm10(jsea) + PT1(jsea,0)
+          end if
+          if (sec_next == 0) then
+            if (counter_sw_pTm10(jsea) /= 0) then
+              sw_pTm10(jsea) = accum_sw_pTm10(jsea) / counter_sw_pTm10(jsea)
+            end if
+            counter_sw_pTm10(jsea) = 0
+            accum_sw_pTm10(jsea) = 0._r8
+          end if
+        else
+          sw_pTm10(jsea) = 0.
+        endif
+      enddo
     end if
+
     ! Swell first moment period, if NOSWLL=1
     if (state_fldchk(exportState, 'Sw_pTm11')) then
-       call state_getfldptr(exportState, 'Sw_pTm11', sw_pTm11, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_pTm11(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             if (PT1(jsea,NOSWLL) /= UNDEF) then
-               sw_pTm11(jsea) = PT1(jsea,NOSWLL)
+      if (.not. allocated(counter_sw_pTm11)) then
+        allocate(counter_sw_pTm11(nseal_cpl))
+        counter_sw_pTm11(:) = 0
+        allocate(accum_sw_pTm11(nseal_cpl))
+        accum_sw_pTm11(:) = 0._r8
+      end if
+
+      call state_getfldptr(exportState, 'Sw_pTm11', sw_pTm11, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_pTm11(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix = mapsf(isea,1)
+        iy = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          if (PT1(jsea,NOSWLL) /= UNDEF) then
+            counter_sw_pTM11(jsea) = counter_sw_pTm11(jsea) + 1
+            accum_sw_pTm11(jsea) = accum_sw_pTm11(jsea) + PT1(jsea,NOSWLL)
+          end if
+          if (sec_next == 0) then
+            if (counter_sw_pTm11(jsea) /= 0) then
+              sw_pTm11(jsea) = accum_sw_pTm11(jsea) / counter_sw_pTm11(jsea)
             end if
-          else
-             sw_pTm11(jsea) = 0.
-          endif
-       enddo
+            counter_sw_pTm11(jsea) = 0
+            accum_sw_pTm11(jsea) = 0._r8
+          end if
+        else
+          sw_pTm11(jsea) = 0.
+        endif
+      enddo
     end if
+
     ! Mean first moment period
     if (state_fldchk(exportState, 'Sw_Tm1')) then
        call state_getfldptr(exportState, 'Sw_Tm1', sw_Tm1, rc=rc)
