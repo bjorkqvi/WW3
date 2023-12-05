@@ -68,20 +68,40 @@ module wav_import_export
   character(*),parameter :: u_FILE_u = &            !< a character string for an ESMF log message
        __FILE__
 
-  real(r8), allocatable :: accum_sw_phs0(:)
-  integer , allocatable :: counter_sw_phs0(:)
-  real(r8), allocatable :: accum_sw_phs1(:)
-  integer , allocatable :: counter_sw_phs1(:)
-
-  real(r8), allocatable :: accum_sw_pdir0(:)
-  integer , allocatable :: counter_sw_pdir0(:)
-  real(r8), allocatable :: accum_sw_pdir1(:)
-  integer , allocatable :: counter_sw_pdir1(:)
-
-  real(r8), allocatable :: accum_sw_pTm10(:)
-  integer , allocatable :: counter_sw_pTm10(:)
-  real(r8), allocatable :: accum_sw_pTm11(:)
-  integer , allocatable :: counter_sw_pTm11(:)
+  real(r8), allocatable :: accum_ustokes_avg(:)
+  integer , allocatable :: counter_ustokes_avg(:)
+  real(r8), allocatable :: accum_vstokes_avg(:)
+  integer , allocatable :: counter_vstokes_avg(:)
+  real(r8), allocatable :: accum_hs_avg(:)
+  integer , allocatable :: counter_hs_avg(:)
+  real(r8), allocatable :: accum_phs0_avg(:)
+  integer , allocatable :: counter_phs0_avg(:)
+  real(r8), allocatable :: accum_phs1_avg(:)
+  integer , allocatable :: counter_phs1_avg(:)
+  real(r8), allocatable :: accum_pdir0_avg(:)
+  integer , allocatable :: counter_pdir0_avg(:)
+  real(r8), allocatable :: accum_pdir1_avg(:)
+  integer , allocatable :: counter_pdir1_avg(:)
+  real(r8), allocatable :: accum_pTm10_avg(:)
+  integer , allocatable :: counter_pTm10_avg(:)
+  real(r8), allocatable :: accum_pTm11_avg(:)
+  integer , allocatable :: counter_pTm11_avg(:)
+  real(r8), allocatable :: accum_tm1_avg(:)
+  integer , allocatable :: counter_tm1_avg(:)
+  real(r8), allocatable :: accum_thm_avg(:)
+  integer , allocatable :: counter_thm_avg(:)
+  real(r8), allocatable :: accum_thp0_avg(:)
+  integer , allocatable :: counter_thp0_avg(:)
+  real(r8), allocatable :: accum_fp0_avg(:)
+  integer , allocatable :: counter_fp0_avg(:)
+  real(r8), allocatable :: accum_u_avg(:)
+  integer , allocatable :: counter_u_avg(:)
+  real(r8), allocatable :: accum_v_avg(:)
+  integer , allocatable :: counter_v_avg(:)
+  real(r8), allocatable :: accum_tusx_avg(:)
+  integer , allocatable :: counter_tusx_avg(:)
+  real(r8), allocatable :: accum_tusy_avg(:)
+  integer , allocatable :: counter_tusy_avg(:)
 
   !===============================================================================
 contains
@@ -166,22 +186,26 @@ contains
     call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pstokes_y', ungridded_lbound=1, ungridded_ubound=3)
 
     if (aux_flds_to_cmeps) then
-       ! fields to mediator added only for averged time history capability in mediator history files
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs0')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs1')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir0')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir1')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm10')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm11')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_Tm1')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusx')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusy')
+       ! fields to mediator added only for outputting daily time averged time wave fields in mediator
+       ! auxilary file
+       ! NOTE: that assumption of daily is used here and is hard-wired into the code
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs1_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir1_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm10_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm11_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_Tm1_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusx_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusy_avg')
     end if
 
     ! AA TODO: In the above fldlist_add calls, we are passing hardcoded ungridded_ubound values (3) because, USSPF(2)
@@ -658,21 +682,24 @@ contains
     real(r8), pointer :: sw_vstokes(:)
     real(r8), pointer :: sw_hstokes(:)
 
-    real(r8), pointer :: sw_hs(:)
-    real(r8), pointer :: sw_phs0(:)
-    real(r8), pointer :: sw_phs1(:)
-    real(r8), pointer :: sw_pdir0(:)
-    real(r8), pointer :: sw_pdir1(:)
-    real(r8), pointer :: sw_pTm10(:)
-    real(r8), pointer :: sw_pTm11(:)
-    real(r8), pointer :: sw_Tm1(:)
-    real(r8), pointer :: sw_thm(:)
-    real(r8), pointer :: sw_thp0(:)
-    real(r8), pointer :: sw_fp0(:)
-    real(r8), pointer :: sw_u(:)
-    real(r8), pointer :: sw_v(:)
-    real(r8), pointer :: sw_tusx(:)
-    real(r8), pointer :: sw_tusy(:)
+    real(r8), pointer :: sw_ustokes_avg(:)
+    real(r8), pointer :: sw_vstokes_avg(:)
+    real(r8), pointer :: sw_hs_avg(:)
+    real(r8), pointer :: sw_phs0_avg(:)
+    real(r8), pointer :: sw_phs1_avg(:)
+    real(r8), pointer :: sw_pdir0_avg(:)
+    real(r8), pointer :: sw_pdir1_avg(:)
+    real(r8), pointer :: sw_pTm10_avg(:)
+    real(r8), pointer :: sw_pTm11_avg(:)
+    real(r8), pointer :: sw_Tm1_avg(:)
+    real(r8), pointer :: sw_thm_avg(:)
+    real(r8), pointer :: sw_thp0_avg(:)
+    real(r8), pointer :: sw_fp0_avg(:)
+    real(r8), pointer :: sw_tusx_avg(:)
+    real(r8), pointer :: sw_tusy_avg(:)
+    real(r8), pointer :: sw_u_avg(:)
+    real(r8), pointer :: sw_v_avg(:)
+
     real(r8), pointer :: sa_u(:)
     real(r8), pointer :: sa_v(:)
 
@@ -751,6 +778,7 @@ contains
         endif
       enddo
     end if
+
     if (state_fldchk(exportState, 'Sw_vstokes')) then
       call state_getfldptr(exportState, 'Sw_vstokes', sw_vstokes, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -851,355 +879,578 @@ contains
     ! -----------------------------------------------
     ! for time averaged otuput to CMEPS auxiliary history file(s)
     ! -----------------------------------------------
+    ! Note that UNDEF is -999.9
 
-    ! Significant wave height
-    if (state_fldchk(exportState, 'Sw_hs')) then
-       call state_getfldptr(exportState, 'Sw_hs', sw_hs, rc=rc)
+    ! surface stokes drift
+    if (state_fldchk(exportState, 'Sw_ustokes_avg')) then
+       if (.not. allocated(counter_ustokes_avg)) then
+          allocate(counter_ustokes_avg(nseal_cpl))
+          counter_ustokes_avg(:) = 0
+          allocate(accum_ustokes_avg(nseal_cpl))
+          accum_ustokes_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_ustokes_avg', sw_ustokes_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_hs(:) = fillvalue
+       sw_ustokes_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
+          ix  = mapsf(isea,1)
+          iy  = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_hs(jsea) = HS(jsea)
+             if (USSX(jsea) /= UNDEF) then
+                counter_ustokes_avg(jsea) = counter_ustokes_avg(jsea) + 1
+                accum_ustokes_avg(jsea) = accum_ustokes_avg(jsea) + USSX(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_ustokes_avg(jsea) /= 0) then
+                   sw_ustokes_avg(jsea) = accum_ustokes_avg(jsea) / counter_ustokes_avg(jsea)
+                end if
+                counter_ustokes_avg(jsea) = 0
+                accum_ustokes_avg(jsea) = 0._r8
+             end if
           else
-             sw_hs(jsea) = 0.
+             sw_ustokes_avg(jsea) = 0.
           endif
        enddo
     end if
 
-    ! Wind Sea siginificant wave height = Partition 0 of HS
-    if (state_fldchk(exportState, 'Sw_phs0')) then
-       if (.not. allocated(counter_sw_phs0)) then
-         allocate(counter_sw_phs0(nseal_cpl))
-         counter_sw_phs0(:) = 0
-         allocate(accum_sw_phs0(nseal_cpl))
-         accum_sw_phs0(:) = 0._r8
+    if (state_fldchk(exportState, 'Sw_vstokes_avg')) then
+       if (.not. allocated(counter_vstokes_avg)) then
+          allocate(counter_vstokes_avg(nseal_cpl))
+          counter_vstokes_avg(:) = 0
+          allocate(accum_vstokes_avg(nseal_cpl))
+          accum_vstokes_avg(:) = 0._r8
        end if
-
-       call state_getfldptr(exportState, 'Sw_phs0', sw_phs0, rc=rc)
+       call state_getfldptr(exportState, 'Sw_vstokes_avg', sw_vstokes_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_phs0(:) = fillvalue
+       sw_vstokes_avg(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix  = mapsf(isea,1)
+          iy  = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (USSY(jsea) /= UNDEF) then
+                counter_vstokes_avg(jsea) = counter_vstokes_avg(jsea) + 1
+                accum_vstokes_avg(jsea) = accum_vstokes_avg(jsea) + USSY(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_vstokes_avg(jsea) /= 0) then
+                   sw_vstokes_avg(jsea) = accum_vstokes_avg(jsea) / counter_vstokes_avg(jsea)
+                end if
+                counter_vstokes_avg(jsea) = 0
+                accum_vstokes_avg(jsea) = 0._r8
+             end if
+          else
+             sw_vstokes_avg(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Significant wave height
+    if (state_fldchk(exportState, 'Sw_hs_avg')) then
+      if (.not. allocated(counter_hs_avg)) then
+        allocate(counter_hs_avg(nseal_cpl))
+        counter_hs_avg(:) = 0
+        allocate(accum_hs_avg(nseal_cpl))
+        accum_hs_avg(:) = 0._r8
+      end if
+      call state_getfldptr(exportState, 'Sw_hs_avg', sw_hs_avg, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_hs_avg(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix = mapsf(isea,1)
+        iy = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          if (HS(jsea) /= UNDEF) then
+            counter_hs_avg(jsea) = counter_hs_avg(jsea) + 1
+            accum_hs_avg(jsea) = accum_hs_avg(jsea) + HS(jsea)
+          end if
+          if (sec_next == 0) then
+            if (counter_hs_avg(jsea) /= 0) then
+              sw_hs_avg(jsea) = accum_hs_avg(jsea) / counter_hs_avg(jsea)
+            end if
+            counter_hs_avg(jsea) = 0
+            accum_hs_avg(jsea) = 0._r8
+          end if
+        else
+          sw_hs_avg(jsea) = 0.
+        endif
+      enddo
+    end if
+
+    ! Wind Sea siginificant wave height = Partition 0 of HS
+    if (state_fldchk(exportState, 'Sw_phs0_avg')) then
+       if (.not. allocated(counter_phs0_avg)) then
+          allocate(counter_phs0_avg(nseal_cpl))
+          counter_phs0_avg(:) = 0
+          allocate(accum_phs0_avg(nseal_cpl))
+          accum_phs0_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_phs0_avg', sw_phs0_avg, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_phs0_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-            ! Note that UNDEF is -999.9
-            if (PHS(jsea,0) /= UNDEF) then
-              counter_sw_phs0(jsea) = counter_sw_phs0(jsea) + 1
-              accum_sw_phs0(jsea) = accum_sw_phs0(jsea) + PHS(jsea,0)
-            end if
-            if (sec_next == 0) then
-              if (counter_sw_phs0(jsea) /= 0) then
-                sw_phs0(jsea) = accum_sw_phs0(jsea) / counter_sw_phs0(jsea)
-              end if
-              counter_sw_phs0(jsea) = 0
-              accum_sw_phs0(jsea) = 0._r8
-            end if
+             if (PHS(jsea,0) /= UNDEF) then
+                counter_phs0_avg(jsea) = counter_phs0_avg(jsea) + 1
+                accum_phs0_avg(jsea) = accum_phs0_avg(jsea) + PHS(jsea,0)
+             end if
+             if (sec_next == 0) then
+                if (counter_phs0_avg(jsea) /= 0) then
+                   sw_phs0_avg(jsea) = accum_phs0_avg(jsea) / counter_phs0_avg(jsea)
+                end if
+                counter_phs0_avg(jsea) = 0
+                accum_phs0_avg(jsea) = 0._r8
+             end if
           else
-             sw_phs0(jsea) = 0.
+             sw_phs0_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Swell siginificant wave height = Partition 1 of HS if NOSWLL=1
-    if (state_fldchk(exportState, 'Sw_phs1')) then
-       if (.not. allocated(counter_sw_phs1)) then
-         allocate(counter_sw_phs1(nseal_cpl))
-         counter_sw_phs1(:) = 0
-         allocate(accum_sw_phs1(nseal_cpl))
-         accum_sw_phs1(:) = 0._r8
+    if (state_fldchk(exportState, 'Sw_phs1_avg')) then
+       if (.not. allocated(counter_phs1_avg)) then
+          allocate(counter_phs1_avg(nseal_cpl))
+          counter_phs1_avg(:) = 0
+          allocate(accum_phs1_avg(nseal_cpl))
+          accum_phs1_avg(:) = 0._r8
        end if
-
-       call state_getfldptr(exportState, 'Sw_phs1', sw_phs1, rc=rc)
+       call state_getfldptr(exportState, 'Sw_phs1_avg', sw_phs1_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_phs1(:) = fillvalue
+       sw_phs1_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-            if (PHS(jsea,NOSWLL) /= UNDEF) then
-              counter_sw_phs1(jsea) = counter_sw_phs1(jsea) + 1
-              accum_sw_phs1(jsea) = accum_sw_phs1(jsea) + PHS(jsea,NOSWLL)
-            end if
-            if (sec_next == 0) then
-              if (counter_sw_phs1(jsea) /= 0) then
-                sw_phs1(jsea) = accum_sw_phs1(jsea) / counter_sw_phs1(jsea)
-              end if
-              counter_sw_phs1(jsea) = 0
-              accum_sw_phs1(jsea) = 0._r8
-            end if
+             if (PHS(jsea,NOSWLL) /= UNDEF) then
+                counter_phs1_avg(jsea) = counter_phs1_avg(jsea) + 1
+                accum_phs1_avg(jsea) = accum_phs1_avg(jsea) + PHS(jsea,NOSWLL)
+             end if
+             if (sec_next == 0) then
+                if (counter_phs1_avg(jsea) /= 0) then
+                   sw_phs1_avg(jsea) = accum_phs1_avg(jsea) / counter_phs1_avg(jsea)
+                end if
+                counter_phs1_avg(jsea) = 0
+                accum_phs1_avg(jsea) = 0._r8
+             end if
           else
-             sw_phs1(jsea) = 0.
+             sw_phs1_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Wind sea mean direction = Partition 0 of DIR
-    if (state_fldchk(exportState, 'Sw_pdir0')) then
-       if (.not. allocated(counter_sw_pdir0)) then
-         allocate(counter_sw_pdir0(nseal_cpl))
-         counter_sw_pdir0(:) = 0
-         allocate(accum_sw_pdir0(nseal_cpl))
-         accum_sw_pdir0(:) = 0._r8
+    if (state_fldchk(exportState, 'Sw_pdir0_avg')) then
+       if (.not. allocated(counter_pdir0_avg)) then
+          allocate(counter_pdir0_avg(nseal_cpl))
+          counter_pdir0_avg(:) = 0
+          allocate(accum_pdir0_avg(nseal_cpl))
+          accum_pdir0_avg(:) = 0._r8
        end if
-
-       call state_getfldptr(exportState, 'Sw_pdir0', sw_pdir0, rc=rc)
+       call state_getfldptr(exportState, 'Sw_pdir0_avg', sw_pdir0_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_pdir0(:) = fillvalue
+       sw_pdir0_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-            if (PDIR(jsea,0) /= UNDEF) then
-              counter_sw_pdir0(jsea) = counter_sw_pdir0(jsea) + 1
-              accum_sw_pdir0(jsea) = accum_sw_pdir0(jsea) + PDIR(jsea,0)
-            end if
-            if (sec_next == 0) then
-              if (counter_sw_pdir0(jsea) /= 0) then
-                sw_pdir0(jsea) = accum_sw_pdir0(jsea) / counter_sw_pdir0(jsea)
-              end if
-              counter_sw_pdir0(jsea) = 0
-              accum_sw_pdir0(jsea) = 0._r8
-            end if
+             if (PDIR(jsea,0) /= UNDEF) then
+                counter_pdir0_avg(jsea) = counter_pdir0_avg(jsea) + 1
+                accum_pdir0_avg(jsea) = accum_pdir0_avg(jsea) + PDIR(jsea,0)
+             end if
+             if (sec_next == 0) then
+                if (counter_pdir0_avg(jsea) /= 0) then
+                   sw_pdir0_avg(jsea) = accum_pdir0_avg(jsea) / counter_pdir0_avg(jsea)
+                end if
+                counter_pdir0_avg(jsea) = 0
+                accum_pdir0_avg(jsea) = 0._r8
+             end if
           else
-             sw_pdir0(jsea) = 0.
+             sw_pdir0_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Swell mean direction = Partition 1 of DIR if NOSWLL=1
-    if (state_fldchk(exportState, 'Sw_pdir1')) then
-       if (.not. allocated(counter_sw_pdir1)) then
-         allocate(counter_sw_pdir1(nseal_cpl))
-         counter_sw_pdir1(:) = 0
-         allocate(accum_sw_pdir1(nseal_cpl))
-         accum_sw_pdir1(:) = 0._r8
+    if (state_fldchk(exportState, 'Sw_pdir1_avg')) then
+       if (.not. allocated(counter_pdir1_avg)) then
+          allocate(counter_pdir1_avg(nseal_cpl))
+          counter_pdir1_avg(:) = 0
+          allocate(accum_pdir1_avg(nseal_cpl))
+          accum_pdir1_avg(:) = 0._r8
        end if
-
-       call state_getfldptr(exportState, 'Sw_pdir1', sw_pdir1, rc=rc)
+       call state_getfldptr(exportState, 'Sw_pdir1_avg', sw_pdir1_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_pdir1(:) = fillvalue
+       sw_pdir1_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
              if (PDIR(jsea,NOSWLL) /= UNDEF) then
-               counter_sw_pdir1(jsea) = counter_sw_pdir1(jsea) + 1
-               accum_sw_pdir1(jsea) = accum_sw_pdir1(jsea) + PDIR(jsea,NOSWLL)
+                counter_pdir1_avg(jsea) = counter_pdir1_avg(jsea) + 1
+                accum_pdir1_avg(jsea) = accum_pdir1_avg(jsea) + PDIR(jsea,NOSWLL)
              end if
              if (sec_next == 0) then
-               if (counter_sw_pdir1(jsea) /= 0) then
-                 sw_pdir1(jsea) = accum_sw_pdir1(jsea) / counter_sw_pdir1(jsea)
-               end if
-               counter_sw_pdir1(jsea) = 0
-               accum_sw_pdir1(jsea) = 0._r8
+                if (counter_pdir1_avg(jsea) /= 0) then
+                   sw_pdir1_avg(jsea) = accum_pdir1_avg(jsea) / counter_pdir1_avg(jsea)
+                end if
+                counter_pdir1_avg(jsea) = 0
+                accum_pdir1_avg(jsea) = 0._r8
              end if
           else
-             sw_pdir1(jsea) = 0.
+             sw_pdir1_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Wind sea first moment period
-    if (state_fldchk(exportState, 'Sw_pTm10')) then
-      if (.not. allocated(counter_sw_pTm10)) then
-        allocate(counter_sw_pTm10(nseal_cpl))
-        counter_sw_pTm10(:) = 0
-        allocate(accum_sw_pTm10(nseal_cpl))
-        accum_sw_pTm10(:) = 0._r8
-      end if
-
-      call state_getfldptr(exportState, 'Sw_pTm10', sw_pTm10, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      sw_pTm10(:) = fillvalue
-      do jsea=1, nseal_cpl
-        call init_get_isea(isea, jsea)
-        ix = mapsf(isea,1)
-        iy = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1) then
-          if (PT1(jsea,0) /= UNDEF) then
-            counter_sw_pTm10(jsea) = counter_sw_pTm10(jsea) + 1
-            accum_sw_pTm10(jsea) = accum_sw_pTm10(jsea) + PT1(jsea,0)
-          end if
-          if (sec_next == 0) then
-            if (counter_sw_pTm10(jsea) /= 0) then
-              sw_pTm10(jsea) = accum_sw_pTm10(jsea) / counter_sw_pTm10(jsea)
-            end if
-            counter_sw_pTm10(jsea) = 0
-            accum_sw_pTm10(jsea) = 0._r8
-          end if
-        else
-          sw_pTm10(jsea) = 0.
-        endif
-      enddo
-    end if
-
-    ! Swell first moment period, if NOSWLL=1
-    if (state_fldchk(exportState, 'Sw_pTm11')) then
-      if (.not. allocated(counter_sw_pTm11)) then
-        allocate(counter_sw_pTm11(nseal_cpl))
-        counter_sw_pTm11(:) = 0
-        allocate(accum_sw_pTm11(nseal_cpl))
-        accum_sw_pTm11(:) = 0._r8
-      end if
-
-      call state_getfldptr(exportState, 'Sw_pTm11', sw_pTm11, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      sw_pTm11(:) = fillvalue
-      do jsea=1, nseal_cpl
-        call init_get_isea(isea, jsea)
-        ix = mapsf(isea,1)
-        iy = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1) then
-          if (PT1(jsea,NOSWLL) /= UNDEF) then
-            counter_sw_pTM11(jsea) = counter_sw_pTm11(jsea) + 1
-            accum_sw_pTm11(jsea) = accum_sw_pTm11(jsea) + PT1(jsea,NOSWLL)
-          end if
-          if (sec_next == 0) then
-            if (counter_sw_pTm11(jsea) /= 0) then
-              sw_pTm11(jsea) = accum_sw_pTm11(jsea) / counter_sw_pTm11(jsea)
-            end if
-            counter_sw_pTm11(jsea) = 0
-            accum_sw_pTm11(jsea) = 0._r8
-          end if
-        else
-          sw_pTm11(jsea) = 0.
-        endif
-      enddo
-    end if
-
-    ! Mean first moment period
-    if (state_fldchk(exportState, 'Sw_Tm1')) then
-       call state_getfldptr(exportState, 'Sw_Tm1', sw_Tm1, rc=rc)
+    if (state_fldchk(exportState, 'Sw_pTm10_avg')) then
+       if (.not. allocated(counter_pTm10_avg)) then
+          allocate(counter_pTm10_avg(nseal_cpl))
+          counter_pTm10_avg(:) = 0
+          allocate(accum_pTm10_avg(nseal_cpl))
+          accum_pTm10_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_pTm10_avg', sw_pTm10_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_Tm1(:) = fillvalue
+       sw_pTm10_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_Tm1(jsea) = T01(jsea)
+             if (PT1(jsea,0) /= UNDEF) then
+                counter_pTm10_avg(jsea) = counter_pTm10_avg(jsea) + 1
+                accum_pTm10_avg(jsea) = accum_pTm10_avg(jsea) + PT1(jsea,0)
+             end if
+             if (sec_next == 0) then
+                if (counter_pTm10_avg(jsea) /= 0) then
+                   sw_pTm10_avg(jsea) = accum_pTm10_avg(jsea) / counter_pTm10_avg(jsea)
+                end if
+                counter_pTm10_avg(jsea) = 0
+                accum_pTm10_avg(jsea) = 0._r8
+             end if
           else
-             sw_Tm1(jsea) = 0.
+             sw_pTm10_avg(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Swell first moment period, if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_pTm11_avg')) then
+       if (.not. allocated(counter_pTm11_avg)) then
+          allocate(counter_pTm11_avg(nseal_cpl))
+          counter_pTm11_avg(:) = 0
+          allocate(accum_pTm11_avg(nseal_cpl))
+          accum_pTm11_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_pTm11_avg', sw_pTm11_avg, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_pTm11_avg(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (PT1(jsea,NOSWLL) /= UNDEF) then
+                counter_pTm11_avg(jsea) = counter_pTm11_avg(jsea) + 1
+                accum_pTm11_avg(jsea) = accum_pTm11_avg(jsea) + PT1(jsea,NOSWLL)
+             end if
+             if (sec_next == 0) then
+                if (counter_pTm11_avg(jsea) /= 0) then
+                   sw_pTm11_avg(jsea) = accum_pTm11_avg(jsea) / counter_pTm11_avg(jsea)
+                end if
+                counter_pTm11_avg(jsea) = 0
+                accum_pTm11_avg(jsea) = 0._r8
+             end if
+          else
+             sw_pTm11_avg(jsea) = 0.
+          endif
+       enddo
+    end if
+
+    ! Mean first moment period
+    if (state_fldchk(exportState, 'Sw_Tm1_avg')) then
+       if (.not. allocated(counter_Tm1_avg)) then
+          allocate(counter_Tm1_avg(nseal_cpl))
+          counter_Tm1_avg(:) = 0
+          allocate(accum_Tm1_avg(nseal_cpl))
+          accum_Tm1_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_Tm1_avg', sw_Tm1_avg, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_Tm1_avg(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (T01(jsea) /= UNDEF) then
+                counter_Tm1_avg(jsea) = counter_Tm1_avg(jsea) + 1
+                accum_Tm1_avg(jsea) = accum_Tm1_avg(jsea) + T01(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_Tm1_avg(jsea) /= 0) then
+                   sw_Tm1_avg(jsea) = accum_Tm1_avg(jsea) / counter_Tm1_avg(jsea)
+                end if
+                counter_Tm1_avg(jsea) = 0
+                accum_Tm1_avg(jsea) = 0._r8
+             end if
+          else
+             sw_Tm1_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Mean wave direction
-    if (state_fldchk(exportState, 'Sw_thm')) then
-       call state_getfldptr(exportState, 'Sw_thm', sw_thm, rc=rc)
+    if (state_fldchk(exportState, 'Sw_thm_avg')) then
+       if (.not. allocated(counter_thm_avg)) then
+          allocate(counter_thm_avg(nseal_cpl))
+          counter_thm_avg(:) = 0
+          allocate(accum_thm_avg(nseal_cpl))
+          accum_thm_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_thm_avg', sw_thm_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_thm(:) = fillvalue
+       sw_thm_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_thm(jsea) = THM(jsea)
+             if (THM(jsea) /= UNDEF) then
+                counter_thm_avg(jsea) = counter_thm_avg(jsea) + 1
+                accum_thm_avg(jsea) = accum_thm_avg(jsea) + THM(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_thm_avg(jsea) /= 0) then
+                   sw_thm_avg(jsea) = accum_thm_avg(jsea) / counter_thm_avg(jsea)
+                end if
+                counter_thm_avg(jsea) = 0
+                accum_thm_avg(jsea) = 0._r8
+             end if
           else
-             sw_thm(jsea) = 0.
+             sw_thm_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Peak direction
-    if (state_fldchk(exportState, 'Sw_thp0')) then
-       call state_getfldptr(exportState, 'Sw_thp0', sw_thp0, rc=rc)
+    if (state_fldchk(exportState, 'Sw_thp0_avg')) then
+       if (.not. allocated(counter_thp0_avg)) then
+          allocate(counter_thp0_avg(nseal_cpl))
+          counter_thp0_avg(:) = 0
+          allocate(accum_thp0_avg(nseal_cpl))
+          accum_thp0_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_thp0_avg', sw_thp0_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_thp0(:) = fillvalue
+       sw_thp0_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_thp0(jsea) = THP0(jsea)
+             if (THP0(jsea) /= UNDEF) then
+                counter_thp0_avg(jsea) = counter_thp0_avg(jsea) + 1
+                accum_thp0_avg(jsea) = accum_thp0_avg(jsea) + THP0(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_thp0_avg(jsea) /= 0) then
+                   sw_thp0_avg(jsea) = accum_thp0_avg(jsea) / counter_thp0_avg(jsea)
+                end if
+                counter_thp0_avg(jsea) = 0
+                accum_thp0_avg(jsea) = 0._r8
+             end if
           else
-             sw_thp0(jsea) = 0.
+             sw_thp0_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Peak frequency
-    if (state_fldchk(exportState, 'Sw_fp0')) then
-       call state_getfldptr(exportState, 'Sw_fp0', sw_fp0, rc=rc)
+    if (state_fldchk(exportState, 'Sw_fp0_avg')) then
+       if (.not. allocated(counter_fp0_avg)) then
+          allocate(counter_fp0_avg(nseal_cpl))
+          counter_fp0_avg(:) = 0
+          allocate(accum_fp0_avg(nseal_cpl))
+          accum_fp0_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_fp0_avg', sw_fp0_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_fp0(:) = fillvalue
+       sw_fp0_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_fp0(jsea) = FP0(jsea)
+             if (FP0(jsea) /= UNDEF) then
+                counter_fp0_avg(jsea) = counter_fp0_avg(jsea) + 1
+                accum_fp0_avg(jsea) = accum_fp0_avg(jsea) + FP0(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_fp0_avg(jsea) /= 0) then
+                   sw_fp0_avg(jsea) = accum_fp0_avg(jsea) / counter_fp0_avg(jsea)
+                end if
+                counter_fp0_avg(jsea) = 0
+                accum_fp0_avg(jsea) = 0._r8
+             end if
           else
-             sw_fp0(jsea) = 0.
+             sw_fp0_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Input zonal wind
-    if (state_fldchk(exportState, 'Sw_u') .and. state_fldchk(importState, 'Sa_u')) then
+    if (state_fldchk(exportState, 'Sw_u_avg') .and. state_fldchk(importState, 'Sa_u')) then
+       if (.not. allocated(counter_u_avg)) then
+          allocate(counter_u_avg(nseal_cpl))
+          counter_u_avg(:) = 0
+          allocate(accum_u_avg(nseal_cpl))
+          accum_u_avg(:) = 0._r8
+       end if
        call state_getfldptr(importState, 'Sa_u', sa_u, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(exportState, 'Sw_u', sw_u, rc=rc)
+       call state_getfldptr(exportState, 'Sw_u_avg', sw_u_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_u(:) = sa_u(:)
-    end if
-
-    ! Input meridional wind
-    if (state_fldchk(exportState, 'Sw_v') .and. state_fldchk(importState, 'Sa_v')) then
-       call state_getfldptr(importState, 'Sa_v', sa_v, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(exportState, 'Sw_v', sw_v, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_v(:) = sa_v(:)
-    end if
-
-    ! Stokes transport u component
-    if (state_fldchk(exportState, 'Sw_tusx')) then
-       call state_getfldptr(exportState, 'Sw_tusx', sw_tusx, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_tusx(:) = fillvalue
+       sw_u_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_tusx(jsea) = TUSX(jsea)
+             if (sa_u(jsea) /= UNDEF) then
+                counter_u_avg(jsea) = counter_u_avg(jsea) + 1
+                accum_u_avg(jsea) = accum_u_avg(jsea) + sa_u(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_u_avg(jsea) /= 0) then
+                   sw_u_avg(jsea) = accum_u_avg(jsea) / counter_u_avg(jsea)
+                end if
+                counter_u_avg(jsea) = 0
+                accum_u_avg(jsea) = 0._r8
+             end if
           else
-             sw_tusx(jsea) = 0.
+             sw_u_avg(:) = sa_u(:)
+          end if
+       end do
+    end if
+
+    ! Input meridional wind
+    if (state_fldchk(exportState, 'Sw_v_avg') .and. state_fldchk(importState, 'Sa_v')) then
+       if (.not. allocated(counter_v_avg)) then
+          allocate(counter_v_avg(nseal_cpl))
+          counter_v_avg(:) = 0
+          allocate(accum_v_avg(nseal_cpl))
+          accum_v_avg(:) = 0._r8
+       end if
+       call state_getfldptr(importState, 'Sa_v', sa_v, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(exportState, 'Sw_v_avg', sw_v_avg, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_v_avg(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (sa_v(jsea) /= UNDEF) then
+                counter_v_avg(jsea) = counter_v_avg(jsea) + 1
+                accum_v_avg(jsea) = accum_v_avg(jsea) + sa_v(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_v_avg(jsea) /= 0) then
+                   sw_v_avg(jsea) = accum_v_avg(jsea) / counter_v_avg(jsea)
+                end if
+                counter_v_avg(jsea) = 0
+                accum_v_avg(jsea) = 0._r8
+             end if
+          else
+             sw_v_avg(:) = sa_v(:)
+          end if
+       end do
+    end if
+
+    ! Stokes transport u component
+    if (state_fldchk(exportState, 'Sw_tusx_avg')) then
+       if (.not. allocated(counter_tusx_avg)) then
+          allocate(counter_tusx_avg(nseal_cpl))
+          counter_tusx_avg(:) = 0
+          allocate(accum_tusx_avg(nseal_cpl))
+          accum_tusx_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_tusx_avg', sw_tusx_avg, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       sw_tusx_avg(:) = fillvalue
+       do jsea=1, nseal_cpl
+          call init_get_isea(isea, jsea)
+          ix = mapsf(isea,1)
+          iy = mapsf(isea,2)
+          if (mapsta(iy,ix) == 1) then
+             if (TUSX(jsea) /= UNDEF) then
+                counter_tusx_avg(jsea) = counter_tusx_avg(jsea) + 1
+                accum_tusx_avg(jsea) = accum_tusx_avg(jsea) + TUSX(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_tusx_avg(jsea) /= 0) then
+                   sw_tusx_avg(jsea) = accum_tusx_avg(jsea) / counter_tusx_avg(jsea)
+                end if
+                counter_tusx_avg(jsea) = 0
+                accum_tusx_avg(jsea) = 0._r8
+             end if
+          else
+             sw_tusx_avg(jsea) = 0.
           endif
        enddo
     end if
 
     ! Stokes transport v component
-    if (state_fldchk(exportState, 'Sw_tusy')) then
-       call state_getfldptr(exportState, 'Sw_tusy', sw_tusy, rc=rc)
+    if (state_fldchk(exportState, 'Sw_tusy_avg')) then
+       if (.not. allocated(counter_tusy_avg)) then
+          allocate(counter_tusy_avg(nseal_cpl))
+          counter_tusy_avg(:) = 0
+          allocate(accum_tusy_avg(nseal_cpl))
+          accum_tusy_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_tusy_avg', sw_tusy_avg, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_tusy(:) = fillvalue
+       sw_tusy_avg(:) = fillvalue
        do jsea=1, nseal_cpl
           call init_get_isea(isea, jsea)
           ix = mapsf(isea,1)
           iy = mapsf(isea,2)
           if (mapsta(iy,ix) == 1) then
-             sw_tusy(jsea) = TUSY(jsea)
+             if (TUSY(jsea) /= UNDEF) then
+                counter_tusy_avg(jsea) = counter_tusy_avg(jsea) + 1
+                accum_tusy_avg(jsea) = accum_tusy_avg(jsea) + TUSY(jsea)
+             end if
+             if (sec_next == 0) then
+                if (counter_tusy_avg(jsea) /= 0) then
+                   sw_tusy_avg(jsea) = accum_tusy_avg(jsea) / counter_tusy_avg(jsea)
+                end if
+                counter_tusy_avg(jsea) = 0
+                accum_tusy_avg(jsea) = 0._r8
+             end if
           else
-             sw_tusy(jsea) = 0.
+             sw_tusy_avg(jsea) = 0.
           endif
        enddo
     end if
 
     if (dbug_flag > 5) then
-      call state_diagnose(exportState, 'at export ', rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_diagnose(exportState, 'at export ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-  end subroutine export_fields
+ end subroutine export_fields
 
   !===============================================================================
   !> Add a fieldname to a list of fields in a state
