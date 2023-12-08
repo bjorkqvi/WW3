@@ -68,6 +68,43 @@ module wav_import_export
   character(*),parameter :: u_FILE_u = &            !< a character string for an ESMF log message
        __FILE__
 
+  real(r8), allocatable :: accum_ustokes_avg(:)
+  integer , allocatable :: counter_ustokes_avg(:)
+  real(r8), allocatable :: accum_vstokes_avg(:)
+  integer , allocatable :: counter_vstokes_avg(:)
+  real(r8), allocatable :: accum_hs_avg(:)
+  integer , allocatable :: counter_hs_avg(:)
+  real(r8), allocatable :: accum_phs0_avg(:)
+  integer , allocatable :: counter_phs0_avg(:)
+  real(r8), allocatable :: accum_phs1_avg(:)
+  integer , allocatable :: counter_phs1_avg(:)
+  real(r8), allocatable :: accum_pdir0_avg(:)
+  integer , allocatable :: counter_pdir0_avg(:)
+  real(r8), allocatable :: accum_pdir1_avg(:)
+  integer , allocatable :: counter_pdir1_avg(:)
+  real(r8), allocatable :: accum_pTm10_avg(:)
+  integer , allocatable :: counter_pTm10_avg(:)
+  real(r8), allocatable :: accum_pTm11_avg(:)
+  integer , allocatable :: counter_pTm11_avg(:)
+  real(r8), allocatable :: accum_tm1_avg(:)
+  integer , allocatable :: counter_tm1_avg(:)
+  real(r8), allocatable :: accum_thm_avg(:)
+  integer , allocatable :: counter_thm_avg(:)
+  real(r8), allocatable :: accum_thp0_avg(:)
+  integer , allocatable :: counter_thp0_avg(:)
+  real(r8), allocatable :: accum_fp0_avg(:)
+  integer , allocatable :: counter_fp0_avg(:)
+  real(r8), allocatable :: accum_u_avg(:)
+  integer , allocatable :: counter_u_avg(:)
+  real(r8), allocatable :: accum_v_avg(:)
+  integer , allocatable :: counter_v_avg(:)
+  real(r8), allocatable :: accum_tusx_avg(:)
+  integer , allocatable :: counter_tusx_avg(:)
+  real(r8), allocatable :: accum_tusy_avg(:)
+  integer , allocatable :: counter_tusy_avg(:)
+
+  private :: accumulate
+
   !===============================================================================
 contains
   !===============================================================================
@@ -90,8 +127,8 @@ contains
     ! input/output variables
     type(ESMF_State)               :: importState
     type(ESMF_State)               :: exportState
-    character(len=*) , intent(in)  :: flds_scalar_name
     logical          , intent(in)  :: aux_flds_to_cmeps
+    character(len=*) , intent(in)  :: flds_scalar_name
     integer          , intent(out) :: rc
 
     ! local variables
@@ -107,7 +144,7 @@ contains
     ! Advertise import fields
     !--------------------------------
 
-    !call fldlist_add(fldsToWav_num, fldsToWav, 'So_h'       )
+   !call fldlist_add(fldsToWav_num, fldsToWav, 'So_h'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'Si_ifrac'   )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_u'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_v'       )
@@ -151,14 +188,26 @@ contains
     call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pstokes_y', ungridded_lbound=1, ungridded_ubound=3)
 
     if (aux_flds_to_cmeps) then
-       ! fields to mediator added only for averged time history capability in mediator history files
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wlm')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v')
+       ! fields to mediator added only for outputting daily time averged time wave fields in mediator
+       ! auxilary file
+       ! NOTE: that assumption of daily is used here and is hard-wired into the code
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs1_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir1_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm10_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm11_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_Tm1_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusx_avg')
+       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusy_avg')
     end if
 
     ! AA TODO: In the above fldlist_add calls, we are passing hardcoded ungridded_ubound values (3) because, USSPF(2)
@@ -592,11 +641,12 @@ contains
     !---------------------------------------------------------------------------
 
     use wav_kind_mod,   only : R8 => SHR_KIND_R8
-    use w3adatmd      , only : USSX, USSY, USSP, HS, WLM, THM, THP0, FP0, TUSX, TUSY
+    use w3adatmd      , only : USSX, USSY, USSP, HS, THM, FP0, THP0, TUSX, TUSY
+    use w3adatmd      , only : PHS, PDIR, T01, PT1
     use w3adatmd      , only : w3seta
     use w3idatmd      , only : w3seti
     use w3wdatmd      , only : va, w3setw
-    use w3odatmd      , only : w3seto, naproc, iaproc
+    use w3odatmd      , only : w3seto, naproc, iaproc, NOSWLL
     use w3gdatmd      , only : nseal, mapsf, MAPSTA, USSPF, NK, w3setg
     use w3iogomd      , only : CALC_U3STOKES
 #ifdef W3_CESMCOUPLED
@@ -604,6 +654,7 @@ contains
 #else
     use wmmdatmd      , only : mdse, mdst, wmsetm
 #endif
+    use constants     , only : UNDEF
 
     ! input/output/variables
     type(ESMF_GridComp)            :: gcomp
@@ -617,7 +668,7 @@ contains
 #endif
     type(ESMF_State)  :: exportState
     type(ESMF_State)  :: importState ! needed if aux history is output by cmeps
-    integer           :: n, jsea, isea, ix, iy, ib
+    integer           :: n, jsea, isea, ix, iy, ib, ik
 
     real(r8), pointer :: z0rlen(:)
     real(r8), pointer :: charno(:)
@@ -633,15 +684,6 @@ contains
     real(r8), pointer :: sw_vstokes(:)
     real(r8), pointer :: sw_hstokes(:)
 
-    real(r8), pointer :: sw_hs(:)
-    real(r8), pointer :: sw_wlm(:)
-    real(r8), pointer :: sw_thm(:)
-    real(r8), pointer :: sw_thp0(:)
-    real(r8), pointer :: sw_fp0(:)
-    real(r8), pointer :: sw_u(:)
-    real(r8), pointer :: sw_v(:)
-    real(r8), pointer :: sw_tusx(:)
-    real(r8), pointer :: sw_tusy(:)
     real(r8), pointer :: sa_u(:)
     real(r8), pointer :: sa_v(:)
 
@@ -651,6 +693,12 @@ contains
     ! Partitioned stokes drift
     real(r8), pointer :: sw_pstokes_x(:,:)
     real(r8), pointer :: sw_pstokes_y(:,:)
+
+    type(ESMF_Clock)  :: clock
+    type(ESMF_Time)   :: currtime, nexttime
+    integer           :: yr,mon,day,sec    ! time units
+    integer           :: yr_next,mon_next,day_next,sec_next    ! time units
+    real(r8), pointer :: dataptr(:)
     character(len=*), parameter :: subname='(wav_import_export:export_fields)'
     !---------------------------------------------------------------------------
 
@@ -659,6 +707,17 @@ contains
 
     ! Get export state
     call NUOPC_ModelGet(gcomp, exportState=exportState, importState=importState, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_GridCompGet(gcomp, exportState=exportstate, clock=clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGet(clock, currtime=currtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_TimeGet(nexttime, yy=yr_next, mm=mon_next, dd=day_next, s=sec_next, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 #ifndef W3_CESMCOUPLED
@@ -703,6 +762,7 @@ contains
         endif
       enddo
     end if
+
     if (state_fldchk(exportState, 'Sw_vstokes')) then
       call state_getfldptr(exportState, 'Sw_vstokes', sw_vstokes, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -803,150 +863,142 @@ contains
     ! -----------------------------------------------
     ! for time averaged otuput to CMEPS auxiliary history file(s)
     ! -----------------------------------------------
+    ! Note that UNDEF is -999.9
 
-    ! Significant wave height
-    if (state_fldchk(exportState, 'Sw_hs')) then
-       call state_getfldptr(exportState, 'Sw_hs', sw_hs, rc=rc)
+    ! surface stokes drift
+    if (state_fldchk(exportState, 'Sw_ustokes_avg')) then
+       call state_getfldptr(exportState, 'Sw_ustokes_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_hs(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_hs(jsea) = HS(jsea)
-          else
-             sw_hs(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_ustokes_avg, accum_ustokes_avg, sec_next, fillvalue, USSX)
     end if
 
-    ! Mean wave length
-    if (state_fldchk(exportState, 'Sw_wlm')) then
-       call state_getfldptr(exportState, 'Sw_wlm', sw_wlm, rc=rc)
+    if (state_fldchk(exportState, 'Sw_vstokes_avg')) then
+       call state_getfldptr(exportState, 'Sw_vstokes_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_wlm(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_wlm(jsea) = WLM(jsea)
-          else
-             sw_wlm(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_vstokes_avg, accum_vstokes_avg, sec_next, fillvalue, USSY)
+    end if
+
+    ! Significant wave height
+    if (state_fldchk(exportState, 'Sw_hs_avg')) then
+       call state_getfldptr(exportState, 'Sw_hs_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_hs_avg, accum_hs_avg, sec_next, fillvalue, HS)
+    end if
+
+    ! Wind Sea siginificant wave height = Partition 0 of HS
+    if (state_fldchk(exportState, 'Sw_phs0_avg')) then
+       call state_getfldptr(exportState, 'Sw_phs0_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_phs0_avg, accum_phs0_avg, sec_next, fillvalue, PHS(:,0))
+    end if
+
+    ! Swell siginificant wave height = Partition 1 of HS if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_phs1_avg')) then
+       call state_getfldptr(exportState, 'Sw_phs1_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_phs1_avg, accum_phs1_avg, sec_next, fillvalue, PHS(:,NOSWLL))
+    end if
+
+    ! Wind sea mean direction = Partition 0 of DIR
+    if (state_fldchk(exportState, 'Sw_pdir0_avg')) then
+       call state_getfldptr(exportState, 'Sw_pdir0_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_pdir0_avg, accum_pdir0_avg, sec_next, fillvalue, PDIR(:,0))
+    end if
+
+    ! Swell mean direction = Partition 1 of DIR if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_pdir1_avg')) then
+       call state_getfldptr(exportState, 'Sw_pdir1_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_pdir1_avg, accum_pdir1_avg, sec_next, fillvalue, PDIR(:,NOSWLL))
+    end if
+
+    ! Wind sea first moment period
+    if (state_fldchk(exportState, 'Sw_pTm10_avg')) then
+       call state_getfldptr(exportState, 'Sw_pTm10_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_pTm10_avg, accum_pTm10_avg, sec_next, fillvalue, PT1(:,0))
+    end if
+
+    ! Swell first moment period, if NOSWLL=1
+    if (state_fldchk(exportState, 'Sw_pTm11_avg')) then
+       call state_getfldptr(exportState, 'Sw_pTm11_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_pTm11_avg, accum_pTm11_avg, sec_next, fillvalue, PT1(:,NOSWLL))
+    end if
+
+    ! Mean first moment period
+    if (state_fldchk(exportState, 'Sw_Tm1_avg')) then
+       call state_getfldptr(exportState, 'Sw_Tm1_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call accumulate(dataptr, counter_Tm1_avg, accum_Tm1_avg, sec_next, fillvalue, T01)
     end if
 
     ! Mean wave direction
-    if (state_fldchk(exportState, 'Sw_thm')) then
-       call state_getfldptr(exportState, 'Sw_thm', sw_thm, rc=rc)
+    if (state_fldchk(exportState, 'Sw_thm_avg')) then
+       call state_getfldptr(exportState, 'Sw_thm_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_thm(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_thm(jsea) = THM(jsea)
-          else
-             sw_thm(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_Thm_avg, accum_Thm_avg, sec_next, fillvalue, THM)
     end if
 
     ! Peak direction
-    if (state_fldchk(exportState, 'Sw_thp0')) then
-       call state_getfldptr(exportState, 'Sw_thp0', sw_thp0, rc=rc)
+    if (state_fldchk(exportState, 'Sw_thp0_avg')) then
+       call state_getfldptr(exportState, 'Sw_thp0_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_thp0(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_thp0(jsea) = THP0(jsea)
-          else
-             sw_thp0(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_thp0_avg, accum_thp0_avg, sec_next, fillvalue, THP0)
     end if
 
     ! Peak frequency
-    if (state_fldchk(exportState, 'Sw_fp0')) then
-       call state_getfldptr(exportState, 'Sw_fp0', sw_fp0, rc=rc)
+    if (state_fldchk(exportState, 'Sw_fp0_avg')) then
+       call state_getfldptr(exportState, 'Sw_fp0_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_fp0(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_fp0(jsea) = FP0(jsea)
-          else
-             sw_fp0(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_fp0_avg, accum_fp0_avg, sec_next, fillvalue, FP0)
     end if
 
     ! Input zonal wind
-    if (state_fldchk(exportState, 'Sw_u') .and. state_fldchk(importState, 'Sa_u')) then
+    if (state_fldchk(exportState, 'Sw_u_avg') .and. state_fldchk(importState, 'Sa_u')) then
+       call state_getfldptr(exportState, 'Sw_u_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Sa_u', sa_u, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(exportState, 'Sw_u', sw_u, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_u(:) = sa_u(:)
+       call accumulate(dataptr, counter_u_avg, accum_u_avg, sec_next, fillvalue, real(sa_u))
     end if
 
     ! Input meridional wind
-    if (state_fldchk(exportState, 'Sw_v') .and. state_fldchk(importState, 'Sa_v')) then
+    if (state_fldchk(exportState, 'Sw_v_avg') .and. state_fldchk(importState, 'Sa_v')) then
+       call state_getfldptr(exportState, 'Sw_v_avg', dataptr, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Sa_v', sa_v, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(exportState, 'Sw_v', sw_v, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_v(:) = sa_v(:)
+       call accumulate(dataptr, counter_v_avg, accum_v_avg, sec_next, fillvalue, real(sa_v))
     end if
 
-    ! Stokes transfer vector zonal
-    if (state_fldchk(exportState, 'Sw_tusx')) then
-       call state_getfldptr(exportState, 'Sw_tusx', sw_tusx, rc=rc)
+    ! Stokes transport u component
+    if (state_fldchk(exportState, 'Sw_tusx_avg')) then
+       if (.not. allocated(counter_tusx_avg)) then
+          allocate(counter_tusx_avg(nseal_cpl))
+          counter_tusx_avg(:) = 0
+          allocate(accum_tusx_avg(nseal_cpl))
+          accum_tusx_avg(:) = 0._r8
+       end if
+       call state_getfldptr(exportState, 'Sw_tusx_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_tusx(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_tusx(jsea) = TUSX(jsea)
-          else
-             sw_tusx(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_tusx_avg, accum_tusx_avg, sec_next, fillvalue, TUSX)
     end if
 
-    ! Stokes transfer vector meridional
-    if (state_fldchk(exportState, 'Sw_tusy')) then
-       call state_getfldptr(exportState, 'Sw_tusy', sw_tusy, rc=rc)
+    ! Stokes transport v component
+    if (state_fldchk(exportState, 'Sw_tusy_avg')) then
+       call state_getfldptr(exportState, 'Sw_tusy_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       sw_tusy(:) = fillvalue
-       do jsea=1, nseal_cpl
-          call init_get_isea(isea, jsea)
-          ix = mapsf(isea,1)
-          iy = mapsf(isea,2)
-          if (mapsta(iy,ix) == 1) then
-             sw_tusy(jsea) = TUSY(jsea)
-          else
-             sw_tusy(jsea) = 0.
-          endif
-       enddo
+       call accumulate(dataptr, counter_tusy_avg, accum_tusy_avg, sec_next, fillvalue, TUSY)
     end if
 
     if (dbug_flag > 5) then
-      call state_diagnose(exportState, 'at export ', rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_diagnose(exportState, 'at export ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
-  end subroutine export_fields
+ end subroutine export_fields
 
   !===============================================================================
   !> Add a fieldname to a list of fields in a state
@@ -1854,4 +1906,55 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
 
   end subroutine readfromfile
+
+  !========================================================================
+  subroutine accumulate(dataptr, counter, accum, sec_next, fillvalue, ww3data)
+
+     use w3gdatmd  , only : mapsf
+     use w3gdatmd  , only : mapsta
+     use constants , only : UNDEF
+
+    ! input/output variables
+     real(r8)              , intent(inout) :: dataptr(:)
+     integer , allocatable , intent(inout) :: counter(:)
+     real(r8), allocatable , intent(inout) :: accum(:)
+     integer               , intent(in)    :: sec_next
+     real(r8)              , intent(in)    :: fillvalue
+     real                  , intent(in)    :: ww3data(:)
+
+     ! local variables
+     integer :: isea, jsea
+     integer :: ix, iy
+     !---------------------------------------------------------------------------
+
+     if (.not. allocated(counter)) then
+        allocate(counter(nseal_cpl))
+        counter(:) = 0
+        allocate(accum(nseal_cpl))
+        accum(:) = 0._r8
+     end if
+
+     dataptr(:) = fillvalue
+     do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix = mapsf(isea,1)
+        iy = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+           if (ww3data(jsea) /= UNDEF) then
+              counter(jsea) = counter(jsea) + 1
+              accum(jsea) = accum(jsea) + ww3data(jsea)
+           end if
+           if (sec_next == 0) then
+              if (counter(jsea) /= 0) then
+                 dataptr(jsea) = accum(jsea) / counter(jsea)
+              end if
+              counter(jsea) = 0
+              accum(jsea) = 0._r8
+           end if
+        else
+           dataptr(jsea) = 0.
+        endif
+     enddo
+  end subroutine accumulate
+
 end module wav_import_export
