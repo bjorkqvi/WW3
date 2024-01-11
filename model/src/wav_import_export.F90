@@ -946,7 +946,7 @@ contains
     if (state_fldchk(exportState, 'Sw_u_avg') .and. state_fldchk(importState, 'Sa_u10m')) then
        call state_getfldptr(exportState, 'Sw_u_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sa_u', sa_u, rc=rc)
+       call state_getfldptr(importState, 'Sa_u10m', sa_u, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call accumulate(dataptr, counter_u_avg, accum_u_avg, sec_next, fillvalue, real(sa_u))
     end if
@@ -955,7 +955,7 @@ contains
     if (state_fldchk(exportState, 'Sw_v_avg') .and. state_fldchk(importState, 'Sa_v10m')) then
        call state_getfldptr(exportState, 'Sw_v_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sa_v', sa_v, rc=rc)
+       call state_getfldptr(importState, 'Sa_v10m', sa_v, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call accumulate(dataptr, counter_v_avg, accum_v_avg, sec_next, fillvalue, real(sa_v))
     end if
