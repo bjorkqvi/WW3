@@ -441,8 +441,8 @@ CONTAINS
     REAL                    :: ICECOEF1, ICECOEF2, ICECOEF3, &
                                ICECOEF4, ICECOEF5, ICECOEF6, &
                                ICECOEF7, ICECOEF8
-    REAL                    :: x1,x2,x3,x1sqr,x2sqr,x3sqr   !case 10
-    REAL                    :: perfour,amhb,bmhb            !case 10
+    REAL                    :: x1,x2,x3,x1sqr,x2sqr,x3sqr   !case 8
+    REAL                    :: perfour,amhb,bmhb            !case 8
     REAL                    :: CICE1,CICE2,CICE3,CICE4,CICE5 ! temporary variables
     REAL                    :: KI1,KI2,KI3,KI4,FC5,FC6,FC7,FREQ
     REAL                    :: HS, EMEAN, HICE
@@ -654,54 +654,8 @@ CONTAINS
       END DO
       WN_I= 0.5 * ALPHA
 
-    CASE (8) ! Meylan et al. (JGR 2018), Liu et al. (JPO 2020)
+    CASE (8)
 
-      NML_INPUT=.TRUE.
-      IF (INFLAGS2(-6)) NML_INPUT=.FALSE.
-
-      IF(NML_INPUT)THEN ! get from namelist array
-
-        Chf=IC4_CN(1) ! Denoted "ChfM2" in documentation
-
-      ELSE ! get from input-field array (ICEP1 etc.)
-
-        Chf=ICECOEF2 ! Denoted "ChfM2" in documentation
-
-      ENDIF
-
-      ! Rename variable, for clarity
-      hice=ICECOEF1 ! For this method, ICECOEF1 is ice thickness
-
-      DO IK=1,NK
-        WN_I(IK)  = Chf*hice*(FREQ(IK)**3)
-      END DO
-
-    CASE (9) ! Rogers et al. (2021) (RYW2021), Yu et al. (JGR 2022)
-
-      NML_INPUT=.TRUE.
-      IF (INFLAGS2(-6).OR.INFLAGS2(-5)) NML_INPUT=.FALSE.
-
-      IF(NML_INPUT)THEN ! get from namelist array
-
-        Chf=IC4_CN(1) ! Denoted as same in documentation
-        npow=IC4_CN(2) ! Denoted "n" in documentation
-
-      ELSE ! get from input-field array (ICEP1 etc.)
-
-        Chf=ICECOEF2 ! Denoted as same in documentation
-        npow=ICECOEF3 ! Denoted "n" in documentation
-
-      ENDIF
-
-      ! Rename variable, for clarity
-      hice=ICECOEF1 ! For this method, ICECOEF1 is ice thickness
-      ! Compute
-      mpow=0.5*npow-1.0 ! Denoted "m" in documentation
-      DO IK=1,NK
-        WN_I(IK)  = Chf*(hice**mpow)*(FREQ(IK)**npow)
-      END DO
-
-    CASE (10)
       !CMB added option of cubic fit to Meylan, Horvat & Bitz in prep
       ! ICECOEF1 is thickness
       ! ICECOEF5 is floe size
@@ -736,6 +690,53 @@ CONTAINS
           WN_I(IK) = amhb/x1sqr+bmhb/perfour
         endif
       end do
+
+    CASE (9) ! Rogers et al. (2021) (RYW2021), Yu et al. (JGR 2022)
+
+      NML_INPUT=.TRUE.
+      IF (INFLAGS2(-6).OR.INFLAGS2(-5)) NML_INPUT=.FALSE.
+
+      IF(NML_INPUT)THEN ! get from namelist array
+
+        Chf=IC4_CN(1) ! Denoted as same in documentation
+        npow=IC4_CN(2) ! Denoted "n" in documentation
+
+      ELSE ! get from input-field array (ICEP1 etc.)
+
+        Chf=ICECOEF2 ! Denoted as same in documentation
+        npow=ICECOEF3 ! Denoted "n" in documentation
+
+      ENDIF
+
+      ! Rename variable, for clarity
+      hice=ICECOEF1 ! For this method, ICECOEF1 is ice thickness
+      ! Compute
+      mpow=0.5*npow-1.0 ! Denoted "m" in documentation
+      DO IK=1,NK
+        WN_I(IK)  = Chf*(hice**mpow)*(FREQ(IK)**npow)
+      END DO
+
+    CASE (10) ! Meylan et al. (JGR 2018), Liu et al. (JPO 2020)
+
+      NML_INPUT=.TRUE.
+      IF (INFLAGS2(-6)) NML_INPUT=.FALSE.
+
+      IF(NML_INPUT)THEN ! get from namelist array
+
+        Chf=IC4_CN(1) ! Denoted "ChfM2" in documentation
+
+      ELSE ! get from input-field array (ICEP1 etc.)
+
+        Chf=ICECOEF2 ! Denoted "ChfM2" in documentation
+
+      ENDIF
+
+      ! Rename variable, for clarity
+      hice=ICECOEF1 ! For this method, ICECOEF1 is ice thickness
+
+      DO IK=1,NK
+        WN_I(IK)  = Chf*hice*(FREQ(IK)**3)
+      END DO
 
     CASE DEFAULT
       WN_I = ICECOEF1 !Default to IC1: Uniform in k
