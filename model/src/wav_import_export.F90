@@ -150,13 +150,10 @@ contains
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_v'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_t'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_tbot'    )
+    call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_u10m'    )
+    call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_v10m'    )
     if (cesmcoupled) then
-      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_u'       )
-      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_v'       )
-      call fldlist_add(fldsToWav_num, fldsToWav, 'So_bldepth' )
-    else
-      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_u10m'    )
-      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_v10m'    )
+       call fldlist_add(fldsToWav_num, fldsToWav, 'So_bldepth' )
     end if
     if (wav_coupling_to_cice) then
       call fldlist_add(fldsToWav_num, fldsToWav, 'Si_thick'   )
@@ -350,8 +347,6 @@ contains
     real(r4)                :: global_data(nsea)
     real(r4), allocatable   :: global_data2(:)
     real(r4)                :: def_value
-    character(len=10)       :: uwnd
-    character(len=10)       :: vwnd
     integer                 :: imod, j, jmod
     integer                 :: mpi_comm_null = -1
     real(r4), allocatable   :: wxdata(:)      ! only needed if merge_import
@@ -362,14 +357,6 @@ contains
 
     rc = ESMF_SUCCESS
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
-
-    if (cesmcoupled) then
-      uwnd = 'Sa_u'
-      vwnd = 'Sa_v'
-    else
-      uwnd = 'Sa_u10m'
-      vwnd = 'Sa_v10m'
-    end if
 
     ! Get import state, clock and vm
     call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, vm=vm, rc=rc)
@@ -443,7 +430,7 @@ contains
         ! set mask using u-wind field if merge_import; assume all import fields
         ! will have same missing overlap region
         ! import_mask memory will be allocate in set_importmask
-        call set_importmask(importState, clock, trim(uwnd), vm, rc)
+        call set_importmask(importState, clock, 'Sa_u10m', vm, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         allocate(wxdata(nsea))
         allocate(wydata(nsea))
@@ -462,8 +449,8 @@ contains
       ! atm u wind
       WX0(:,:) = def_value
       WXN(:,:) = def_value
-      if (state_fldchk(importState, trim(uwnd))) then
-        call SetGlobalInput(importState, trim(uwnd), vm, global_data, rc)
+      if (state_fldchk(importState, 'Sa_u10m')) then
+        call SetGlobalInput(importState, 'Sa_u10m', vm, global_data, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         if (merge_import) then
           call FillGlobalInput(global_data, import_mask, wxdata, WX0)
@@ -481,9 +468,9 @@ contains
       ! atm v wind
       WY0(:,:) = def_value
       WYN(:,:) = def_value
-      if (state_fldchk(importState, trim(vwnd))) then
+      if (state_fldchk(importState, 'Sa_v10m')) then
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-        call SetGlobalInput(importState, trim(vwnd), vm, global_data, rc)
+        call SetGlobalInput(importState, 'Sa_v10m', vm, global_data, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         if (merge_import) then
           call FillGlobalInput(global_data, import_mask, wydata, WY0)
@@ -956,19 +943,19 @@ contains
     end if
 
     ! Input zonal wind
-    if (state_fldchk(exportState, 'Sw_u_avg') .and. state_fldchk(importState, 'Sa_u')) then
+    if (state_fldchk(exportState, 'Sw_u_avg') .and. state_fldchk(importState, 'Sa_u10m')) then
        call state_getfldptr(exportState, 'Sw_u_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sa_u', sa_u, rc=rc)
+       call state_getfldptr(importState, 'Sa_u10m', sa_u, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call accumulate(dataptr, counter_u_avg, accum_u_avg, sec_next, fillvalue, real(sa_u))
     end if
 
     ! Input meridional wind
-    if (state_fldchk(exportState, 'Sw_v_avg') .and. state_fldchk(importState, 'Sa_v')) then
+    if (state_fldchk(exportState, 'Sw_v_avg') .and. state_fldchk(importState, 'Sa_v10m')) then
        call state_getfldptr(exportState, 'Sw_v_avg', dataptr, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sa_v', sa_v, rc=rc)
+       call state_getfldptr(importState, 'Sa_v10m', sa_v, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call accumulate(dataptr, counter_v_avg, accum_v_avg, sec_next, fillvalue, real(sa_v))
     end if
