@@ -444,7 +444,7 @@ CONTAINS
     REAL                    :: x1,x2,x3,x1sqr,x2sqr,x3sqr   !case 8
     REAL                    :: perfour,amhb,bmhb            !case 8
     REAL                    :: CICE1,CICE2,CICE3,CICE4,CICE5 ! temporary variables
-    REAL                    :: KI1,KI2,KI3,KI4,FC5,FC6,FC7,FREQ
+    REAL                    :: KI1,KI2,KI3,KI4,FC5,FC6,FC7
     REAL                    :: HS, EMEAN, HICE
     REAL                    :: Chf,mpow,npow
     REAL, ALLOCATABLE       :: WN_I(:)  ! exponential decay rate for amplitude
