@@ -1517,14 +1517,13 @@ contains
     ! inflags2(4) is true if ice concentration was ever read during this simulation
     ! Currently IC4 is used in cesm
     inflags2(:) = .false.
+    inflags1(-7) = .true. ! ice thickness
     if (wav_coupling_to_cice) then
       inflags2(4)  = .true. ! inflags2(4) is true if ice concentration was read during initialization
-      inflags1(-7) = .true. ! ice thickness
       inflags2(-7) = .true. ! ice thickness
       inflags1(-3) = .true. ! ice floe size
       inflags2(-3) = .true. ! ice floe size
     else
-      inflags1(-7) = .false. ! ice thickness
       inflags2(-7) = .false. ! ice thickness
       inflags1(-3) = .false. ! ice floe size
       inflags2(-3) = .false. ! ice floe size
