@@ -299,7 +299,8 @@ PROGRAM W3PRNC
   REAL, ALLOCATABLE       :: XC(:,:), YC(:,:), AC(:,:),           &
        DATA(:,:), XTEMP(:,:)
   !
-  REAL, POINTER           :: ALA(:,:), ALO(:,:)
+  REAL, ALLOCATABLE, TARGET :: ALA(:,:), ALO(:,:)
+  REAL, POINTER           :: PTR_ALA(:,:), PTR_ALO(:,:)
   !
   DOUBLE PRECISION        :: REFJULDAY, CURJULDAY, STARTJULDAY, STPJULDAY
   !
@@ -1007,7 +1008,9 @@ PROGRAM W3PRNC
       !
       ! ... create grid search utility
       !
-      GSI = W3GSUC( .TRUE., FLAGLL, ICLO, ALO, ALA )
+      PTR_ALA => ALA
+      PTR_ALO => ALO
+      GSI = W3GSUC( .TRUE., FLAGLL, ICLO, PTR_ALO, PTR_ALA )
       !
       ! ... construct Interpolation data
       !
@@ -1056,7 +1059,7 @@ PROGRAM W3PRNC
           ! Manages the simple closure of the grid
           !
           IF (ICLO.EQ.ICLOSE_NONE) THEN
-            IF (IX21(IX,1).LT.1.OR.IX21(IX,1).GT.NXI-1) WRITE(NDSO,1042) IX, IY, X, Y
+            IF (IX21(IX,1).LT.1.OR.IX21(IX,1).GT.NXI-1) WRITE(NDSO,1041) IX, X, Y
             IX21(IX,1) =   MAX ( 1 , MIN(IX21(IX,1),NXI-1) )
             IX22(IX,1) =   IX21(IX,1) + 1
           ELSE
@@ -1064,7 +1067,7 @@ PROGRAM W3PRNC
             IX22(IX,1) =   MOD(IX21(IX,1),NXI)+1
           END IF
           IY21(IX,1) =   1 + INT((Y-Y0I)/SYI)
-          IF (IY21(IX,1).LT.1.OR.IY21(IX,1).GT.NYI-1) WRITE(NDSO,1042) IX, IY, X, Y
+          IF (IY21(IX,1).LT.1.OR.IY21(IX,1).GT.NYI-1) WRITE(NDSO,1041) IX, X, Y
           IY21(IX,1) =   MAX ( 1 , MIN(IY21(IX,1),NYI-1) )
           IY22(IX,1) =   IY21(IX,1) + 1
           !
@@ -1210,9 +1213,9 @@ PROGRAM W3PRNC
         !
         ! ... read lat-lon data
         !
-        IF ( ASSOCIATED(ALA) ) THEN
+        IF ( ALLOCATED(ALA) ) THEN
           DEALLOCATE ( ALA, ALO )
-          NULLIFY ( ALA, ALO )
+          NULLIFY ( PTR_ALA, PTR_ALO )
         END IF
         ALLOCATE ( ALA(NXJ(J),NYJ(J)), ALO(NXJ(J),NYJ(J)) )
         CALL INA2R (ALA, NXJ(J), NYJ(J), 1, NXJ(J), 1, NYJ(J),&
@@ -2221,7 +2224,7 @@ PROGRAM W3PRNC
   END DO ! NTI
   !
   DEALLOCATE(XC,YC,AC,XTEMP)
-  IF (ASSOCIATED(ALA)) DEALLOCATE(ALA,ALO)
+  IF (ALLOCATED(ALA)) DEALLOCATE(ALA,ALO)
   !
   !     End loop over input fields
   !--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2435,6 +2438,9 @@ PROGRAM W3PRNC
        '     2MS2 2MN2 2NK2 MNS2 MSN2 2SM2 3MSN2 '      &
        '     M4 MS4 MN4 M6 2MS6 2MN6'/)
   !
+1041 FORMAT (/' *** WAVEWATCH-III WARNING W3PRNC : '/                &
+       '     GRID POINT ',I6,2F7.2,/                         &
+       ' NOT COVERED BY INPUT GRID.'/)
 1042 FORMAT (/' *** WAVEWATCH-III WARNING W3PRNC : '/                &
        '     GRID POINT ',2I6,2F7.2,/                         &
        ' NOT COVERED BY INPUT GRID.'/)

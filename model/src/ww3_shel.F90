@@ -329,7 +329,7 @@ PROGRAM W3SHEL
        NDSEN, IERR, J, I, ILOOP, IPTS, NPTS,     &
        NDTNEW, MPI_COMM = -99,                   &
        FLAGTIDE, COUPL_COMM, IH, N_TOT
-  INTEGER             :: NDSF(-7:9), NDS(13), NTRACE(2), NDT(7:9), &
+  INTEGER             :: NDSF(-7:9), NDS(15), NTRACE(2), NDT(7:9), &
        TIME0(2), TIMEN(2), TTIME(2), TTT(2),     &
        NH(-7:10), THO(2,-7:10,NHMAX), RCLD(7:9), &
        NODATA(7:9), ODAT(40), IPRT(6) = 0,       &
@@ -600,6 +600,9 @@ PROGRAM W3SHEL
   NDS(11) = 22
   NDS(12) = 23
   NDS(13) = 34
+  NDS(14) = 36
+  NDS(15) = 37
+
   !
   NTRACE(1) =  NDS(3)
   NTRACE(2) =  10
@@ -2062,7 +2065,7 @@ PROGRAM W3SHEL
             DTTST=0.
           ELSE
             ID_OASIS_TIME = NINT(DSEC21 ( TIME00 , TFN(:,J) ))
-            IF ( NINT(MOD(DSEC21(TIME00,TIME), DTOUT(7))) .EQ. 0 .AND. &
+            IF ( MOD(NINT(DSEC21(TIME00,TIME)), NINT(DTOUT(7))) .EQ. 0 .AND. &
                  DSEC21 (TFN(:,J), TIMEEND) .GT. 0.0 ) DTTST=0.
           ENDIF
         ENDIF
@@ -2101,10 +2104,6 @@ PROGRAM W3SHEL
             IF (FLAGSC(J)) FLAGSCI = .TRUE.
             IF (.NOT.FLAGSCI) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
             CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                  NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                  TTT, XXX, XXX, XXX, TI1, XXX, XXX, ICEP1,  &
@@ -2113,11 +2112,6 @@ PROGRAM W3SHEL
                  , COUPL_COMM                       &
 #endif
                  )
-#ifdef W3_OASIS
-          ELSE
-            IERR = -1
-          END IF
-#endif
           END IF
           IF ( IERR .LT. 0 ) FLLST_ALL(J) = .TRUE.
 
@@ -2177,10 +2171,6 @@ PROGRAM W3SHEL
             IF (FLAGSC(J)) FLAGSCI = .TRUE.
             IF (.NOT.FLAGSCI) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
             CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                  NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                  TTT, XXX, XXX, XXX, TI5, XXX, XXX, ICEP5,  &
@@ -2189,11 +2179,6 @@ PROGRAM W3SHEL
                  , COUPL_COMM                       &
 #endif
                  )
-#ifdef W3_OASIS
-          ELSE
-            IERR = -1
-          END IF
-#endif
           END IF
           IF ( IERR .LT. 0 )FLLST_ALL(J) = .TRUE.
 
@@ -2262,10 +2247,6 @@ PROGRAM W3SHEL
 #ifdef W3_OASOCM
               IF (.NOT.FLAGSC(J)) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
               CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                    NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                    TTT, XXX, XXX, XXX, TLN, XXX, XXX, WLEV,   &
@@ -2274,11 +2255,6 @@ PROGRAM W3SHEL
                    , COUPL_COMM                       &
 #endif
                    )
-#ifdef W3_OASIS
-            ELSE
-              IERR = -1
-            END IF
-#endif
 #ifdef W3_TIDE
             END IF
 #endif
@@ -2319,10 +2295,6 @@ PROGRAM W3SHEL
 #ifdef W3_OASOCM
               IF (.NOT.FLAGSC(J)) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
               CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                    NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                    TC0, CX0, CY0, XXX, TCN, CXN, CYN, XXX,    &
@@ -2331,9 +2303,6 @@ PROGRAM W3SHEL
                    , COUPL_COMM                       &
 #endif
                    )
-#ifdef W3_OASIS
-            END IF
-#endif
 #ifdef W3_TIDE
             END IF
 #endif
@@ -2362,10 +2331,6 @@ PROGRAM W3SHEL
 #ifdef W3_OASACM
             IF (.NOT.FLAGSC(J)) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
             CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                  NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                  TW0, WX0, WY0, DT0, TWN, WXN, WYN, DTN,    &
@@ -2374,9 +2339,6 @@ PROGRAM W3SHEL
                  , COUPL_COMM                       &
 #endif
                  )
-#ifdef W3_OASIS
-          END IF
-#endif
           END IF
 
           ! ICE : ice conc.
@@ -2393,10 +2355,6 @@ PROGRAM W3SHEL
             IF (FLAGSC(J)) FLAGSCI = .TRUE.
             IF (.NOT.FLAGSCI) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
             CALL W3FLDG ('READ', IDSTR(J), NDSF(J),            &
                  NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN,    &
                  TTT, XXX, XXX, XXX, TIN, XXX, BERGI, ICEI,    &
@@ -2405,11 +2363,6 @@ PROGRAM W3SHEL
                  , COUPL_COMM                          &
 #endif
                  )
-#ifdef W3_OASIS
-          ELSE
-            IERR = -1
-          END IF
-#endif
             IF ( IERR .LT. 0 ) FLLSTI = .TRUE.
             !could be:      IF ( IERR .LT. 0 ) FLLST_ALL(J) = .TRUE.
           END IF
@@ -2437,10 +2390,6 @@ PROGRAM W3SHEL
 #ifdef W3_OASACM
             IF (.NOT.FLAGSC(J)) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
             CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                  NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                  TU0, UX0, UY0, XXX, TUN, UXN, UYN, XXX,    &
@@ -2449,9 +2398,6 @@ PROGRAM W3SHEL
                  , COUPL_COMM                               &
 #endif
                  )
-#ifdef W3_OASIS
-          END IF
-#endif
           END IF
 
           ! RHO : air density
@@ -2476,10 +2422,6 @@ PROGRAM W3SHEL
 #ifdef W3_OASACM
             IF (.NOT.FLAGSC(J)) ID_OASIS_TIME = -1
 #endif
-#ifdef W3_OASIS
-            IF (ID_OASIS_TIME >0 .OR. FIRST_STEP .OR.       &
-                                    .NOT. FLAGSC(J)) THEN
-#endif
             CALL W3FLDG ('READ', IDSTR(J), NDSF(J),         &
                  NDST, NDSEN, NX, NY, NX, NY, TIME0, TIMEN, &
                  TR0, XXX, XXX, RH0, TRN, XXX, XXX, RHN,    &
@@ -2488,9 +2430,6 @@ PROGRAM W3SHEL
                  , COUPL_COMM                               &
 #endif
                  )
-#ifdef W3_OASIS
-          END IF
-#endif
             IF ( IERR .LT. 0 ) FLLSTR = .TRUE.
           END IF
 

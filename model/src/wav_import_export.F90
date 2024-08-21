@@ -146,6 +146,7 @@ contains
 
    !call fldlist_add(fldsToWav_num, fldsToWav, 'So_h'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'Si_ifrac'   )
+    call fldlist_add(fldsToWav_num, fldsToWav, 'Si_thick'   )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_u'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_v'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_t'       )
@@ -156,7 +157,6 @@ contains
        call fldlist_add(fldsToWav_num, fldsToWav, 'So_bldepth' )
     end if
     if (wav_coupling_to_cice) then
-      call fldlist_add(fldsToWav_num, fldsToWav, 'Si_thick'   )
       call fldlist_add(fldsToWav_num, fldsToWav, 'Si_floediam')
     end if
 
