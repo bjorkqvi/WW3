@@ -44,7 +44,7 @@ module wav_comp_nuopc
   use wav_shr_mod           , only : wav_coupling_to_cice, nwav_elev_spectrum
   use wav_shr_mod           , only : merge_import, dbug_flag
   use w3odatmd              , only : nds, iaproc, napout
-  use w3odatmd              , only : runtype, use_user_histname, user_histfname, use_user_restname, user_restfname
+  use w3odatmd              , only : runtype, user_histfname, user_restfname
   use w3odatmd              , only : use_historync, use_restartnc, restart_from_binary, logfile_is_assigned
   use w3odatmd              , only : time_origin, calendar_name, elapsed_secs
   use wav_shr_mod           , only : casename, multigrid, inst_suffix, inst_index, unstr_mesh
@@ -475,7 +475,6 @@ contains
     integer                        :: petcount
     real(r8)                       :: toff
     logical                        :: isPresent, isSet
-    character(len=CL)              :: logmsg
     character(ESMF_MAXSTR)         :: preamb = './'
     character(ESMF_MAXSTR)         :: ifname = 'ww3_multi.inp'
     character(len=*), parameter    :: subname = '(wav_comp_nuopc:InitializeRealize)'
@@ -674,10 +673,6 @@ contains
     !--------------------------------------------------------------------
 
     if (cesmcoupled) then
-      ! custom restart and history file names are used for CESM
-      use_user_histname = .true.
-      use_user_restname = .true.
-
       if (len_trim(inst_suffix) > 0) then
         user_restfname = trim(casename)//'.ww3'//trim(inst_suffix)//'.r.'
         user_histfname = trim(casename)//'.ww3'//trim(inst_suffix)//'.hi.'
@@ -695,39 +690,33 @@ contains
       if (isPresent .and. isSet) then
         use_restartnc=(trim(cvalue)=="true")
       end if
-      write(logmsg,'(A,l)') trim(subname)//': Wave use_restartnc setting is ',use_restartnc
-      call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
+      if (root_task) write(stdout,'(a,l4)') trim(subname)//': Wave use_restartnc setting is ',use_restartnc
+
+      ! user filenaming is required with netcdf restarts or restart_from_binary. If netcdf restarts are not used,
+      ! only native WW3 file naming is possible
+      if (use_restartnc) then
+        user_restfname = trim(casename)//'.ww3.r.'
+        if (root_task) write(stdout,'(a)') trim(subname)//': Custom restart prefix is '//trim(user_restfname)
+      end if
 
       call NUOPC_CompAttributeGet(gcomp, name='use_historync', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       if (isPresent .and. isSet) then
         use_historync=(trim(cvalue)=="true")
       end if
-      if (root_task) write(stdout,'(a,l)') trim(subname)//': Wave use_historync setting is ',use_historync
+      if (root_task) write(stdout,'(a,l4)') trim(subname)//': Wave use_historync setting is ',use_historync
 
-      call NUOPC_CompAttributeGet(gcomp, name='user_sets_histname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      if (isPresent .and. isSet) then
-        use_user_histname=(trim(cvalue)=="true")
-      end if
-      if (root_task) write(stdout,'(a,l)') trim(subname)//': Custom history name setting is ',use_user_histname
-
-      if (use_restartnc) then
-        use_user_restname = .true.
-      else
-        call NUOPC_CompAttributeGet(gcomp, name='user_sets_restname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+      ! user filenaming is optional with netcdf output. If netcdf history is not used, only native WW3
+      ! naming is possible
+      if (use_historync) then
+        call NUOPC_CompAttributeGet(gcomp, name='user_histname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-        if (isPresent .and. isSet) then
-          use_user_restname=(trim(cvalue)=="true")
+        if (trim(cvalue)=="true") then
+          user_histfname = trim(casename)//'.ww3.hi.'
+          if (root_task) write(stdout,'(a)') trim(subname)//': Custom history prefix is '//trim(user_histfname)
+        else
+          user_histfname = ''
         end if
-      end if
-      if (root_task) write(stdout,'(a,l)') trim(subname)//': Custom restart name setting is ',use_user_restname
-
-      if (use_user_histname) then
-        user_histfname = trim(casename)//'.ww3.hi.'
-      end if
-      if (use_user_restname) then
-        user_restfname = trim(casename)//'.ww3.r.'
       end if
     end if ! if (cesmcoupled)
 
@@ -738,8 +727,7 @@ contains
       if (isPresent .and. isSet) then
         restart_from_binary=(trim(cvalue)=="true")
       end if
-      write(logmsg,'(A,l)') trim(subname)//': Wave restart_from_binary setting is ',restart_from_binary
-      call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
+      if (root_task) write(stdout,'(a,l4)') trim(subname)//': Wave restart_from_binary setting is ',restart_from_binary
     end if
 
     if (use_restartnc .or. use_historync) then

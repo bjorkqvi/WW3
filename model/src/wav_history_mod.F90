@@ -94,7 +94,7 @@ contains
 
     use w3timemd   , only : set_user_timestring
     use w3odatmd   , only : time_origin, calendar_name, elapsed_secs
-    use w3odatmd   , only : use_user_histname, user_histfname
+    use w3odatmd   , only : user_histfname
     !TODO: use unstr_mesh from wav_shr_mod; currently fails due to CI
     !use wav_shr_mod      , only : unstr_mesh
 
@@ -118,14 +118,12 @@ contains
     ! create the netcdf file
     ! -------------------------------------------------------------
 
-    if (use_user_histname) then
-      if (len_trim(user_histfname) == 0 ) then
-        call extcde (60, msg="user history filename requested but not provided")
-      end if
+    ! native WW3 file naming
+    if (len_trim(user_histfname) == 0) then
+      write(fname,'(a,i8.8,a1,i6.6,a)')trim(fnmpre),timen(1),'.',timen(2),'.out_grd.'//trim(filext)//'.nc'
+    else
       call set_user_timestring(timen,user_timestring)
       fname = trim(user_histfname)//trim(user_timestring)//'.nc'
-    else
-      write(fname,'(a,i8.8,a1,i6.6,a)')trim(fnmpre),timen(1),'.',timen(2),'.out_grd.'//trim(filext)//'.nc'
     end if
 
     pioid%fh = -1

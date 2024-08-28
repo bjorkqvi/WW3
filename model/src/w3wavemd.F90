@@ -2558,7 +2558,6 @@ CONTAINS
         call print_memcheck(memunit, 'memcheck_____:'//' WW3_WAVE AFTER TIME LOOP 2')
         !
         ! 4.c Reset next output time
-
         !
         TOFRST(1) = -1
         TOFRST(2) =  0
@@ -2590,11 +2589,7 @@ CONTAINS
 #ifdef W3_SBS
                   IF ( J .EQ. 1 ) THEN
 #endif
-                    CALL W3IOGO( 'WRITE', NDS(7), ITEST, IMOD &
-#ifdef W3_ASCII
-                         ,NDS(14)                          &
-#endif
-                         )
+                    CALL W3IOGO( 'WRITE', NDS(7), ITEST, IMOD )
 #ifdef W3_SBS
                   ENDIF
 #endif
@@ -2629,9 +2624,6 @@ CONTAINS
                   CALL W3IOPON ( 'WRITE', NDS(8), ITEST, IMOD )
 #else
                   CALL W3IOPO ( 'WRITE', NDS(8), ITEST, IMOD &
-#ifdef W3_ASCII
-                          ,NDS(15)                           &
-#endif
                           )
 #endif
                   END IF
