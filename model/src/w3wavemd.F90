@@ -491,8 +491,10 @@ CONTAINS
 #ifdef W3_TIMINGS
     USE W3PARALL, only : PRINT_MY_TIME
 #endif
-    use w3iogoncdmd   , only : w3iogoncd
-    use w3odatmd      , only : histwr, rstwr, user_netcdf_grdout
+    use wav_restart_mod , only : write_restart
+    use w3iogoncmd      , only : w3iogonc
+    use w3odatmd        , only : histwr, rstwr, use_historync, use_restartnc, user_restfname
+    use w3timemd        , only : set_user_timestring
     !
 #ifdef W3_MPI
     INCLUDE "mpif.h"
@@ -511,6 +513,9 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     !/ Local parameters :
     !/
+#ifdef W3_T
+    INTEGER                 :: ILEN
+#endif
 #ifdef W3_S
     INTEGER, SAVE           :: IENT = 0
 #endif
@@ -523,12 +528,15 @@ CONTAINS
     INTEGER                 :: TTEST(2),DTTEST
     REAL                    :: ICEDAVE
     !
+#ifdef W3_MPI
     LOGICAL                 :: SBSED
-    LOGICAL                 :: CPLWRTFLG
+#endif
 #ifdef W3_SEC1
     INTEGER                 :: ISEC1
 #endif
+#ifdef W3_SBS
     INTEGER                 :: JJ, NDSOFLG
+#endif
 #ifdef W3_MPI
     INTEGER                 :: IERR_MPI, NRQMAX
     INTEGER, ALLOCATABLE    :: STATCO(:,:), STATIO(:,:)
@@ -583,7 +591,9 @@ CONTAINS
     REAL ::             VD_SPEC(NSPEC)
 #endif
     !
+#ifdef W3_SBS
     CHARACTER(LEN=30)       :: FOUTNAME
+#endif
     !
 #ifdef W3_T
     REAL             :: INDSORT(NSEA), DTCFL1(NSEA)
@@ -594,28 +604,9 @@ CONTAINS
     REAL, ALLOCATABLE       :: BACSPEC(:)
     REAL                    :: BACANGL
 #endif
-    ! locally defined flags
-#ifdef W3_SBS
-    logical, parameter ::  w3_sbs_flag = .true.
-#else
-    logical, parameter ::  w3_sbs_flag = .false.
-#endif
-#ifdef W3_CESMCOUPLED
-    logical, parameter :: w3_cesmcoupled_flag = .true.
-#else
-    logical, parameter :: w3_cesmcoupled_flag = .false.
-#endif
-    integer :: memunit
-    logical :: do_gridded_output
-    logical :: do_point_output
-    logical :: do_track_output
-    logical :: do_restart_output
-    logical :: do_sf_output
-    logical :: do_coupler_output
-    logical :: do_wavefield_separation_output
-    logical :: do_startall
-    logical :: do_w3outg
-
+    integer            :: memunit
+    character(len=16)  :: user_timestring    !YYYY-MM-DD-SSSSS
+    character(len=256) :: fname
     !/ ------------------------------------------------------------------- /
     ! 0.  Initializations
     !
@@ -707,12 +698,15 @@ CONTAINS
       FACX   =  1.
     END IF
     !
+#ifdef W3_SBS
+    NDSOFLG = 99
+#endif
+#ifdef W3_MPI
     SBSED = .FALSE.
-    if (w3_sbs_flag) then
-      NDSOFLG = 99
-      SBSED = .TRUE.
-    end if
-
+#endif
+#ifdef W3_SBS
+    SBSED = .TRUE.
+#endif
     !
     TAUWX  = 0.
     TAUWY  = 0.
@@ -720,7 +714,8 @@ CONTAINS
     ! 0.d Test output
     !
 #ifdef W3_T
-    WRITE (NDST,9000) IMOD, trim(FILEXT), TEND
+    ILEN   = LEN_TRIM(FILEXT)
+    WRITE (NDST,9000) IMOD, FILEXT(:ILEN), TEND
 #endif
     !
     ! 1.  Check the consistency of the input ----------------------------- /
@@ -2389,88 +2384,97 @@ CONTAINS
         !
         ! 4.b Processing and MPP preparations
         !
-        IF ( FLOUT(1) ) THEN
-          FLOUTG = DSEC21(TIME,TONEXT(:,1)).EQ.0.
-        ELSE
-          FLOUTG = .FALSE.
-        END IF
-        !
-        IF ( FLOUT(7) ) THEN
-          FLOUTG2 = DSEC21(TIME,TONEXT(:,7)).EQ.0.
-        ELSE
-          FLOUTG2 = .FALSE.
-        END IF
-        !
-        FLPART = .FALSE.
-        IF ( FLOUT(1) .AND. FLPFLD ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,1)).EQ.0.
-        IF ( FLOUT(6) ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,6)).EQ.0.
-        !
+        if (use_historync) then
+          floutg = .false.
+          floutg2 = .false.
+          if (histwr) then
+            if (flout(6))call w3cprt ( imod )
+            call w3outg ( va, flpfld, .true., .false. )
+            call w3iogonc(tend)
+          end if
+        else
+          IF ( FLOUT(1) ) THEN
+            FLOUTG = DSEC21(TIME,TONEXT(:,1)).EQ.0.
+          ELSE
+            FLOUTG = .FALSE.
+          END IF
+          !
+          IF ( FLOUT(7) ) THEN
+            FLOUTG2 = DSEC21(TIME,TONEXT(:,7)).EQ.0.
+          ELSE
+            FLOUTG2 = .FALSE.
+          END IF
+          !
+          FLPART = .FALSE.
+          IF ( FLOUT(1) .AND. FLPFLD ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,1)).EQ.0.
+          IF ( FLOUT(6) ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,6)).EQ.0.
+          !
 #ifdef W3_T
-        WRITE (NDST,9042) LOCAL, FLPART, FLOUTG
+          WRITE (NDST,9042) LOCAL, FLPART, FLOUTG
 #endif
         !
-        IF ( LOCAL .AND. FLPART ) then
-          CALL W3CPRT ( IMOD )
-        end IF
-
-        do_w3outg = .false.
-        if (w3_cesmcoupled_flag .and. histwr) then
-          do_w3outg = .true.
-        else if ( LOCAL .AND. (FLOUTG .OR. FLOUTG2) ) then
-          do_w3outg = .true.
-        end if
-        if (do_w3outg) then
-          CALL W3OUTG ( VA, FLPFLD, FLOUTG, FLOUTG2 )
+          IF ( LOCAL .AND. FLPART ) CALL W3CPRT ( IMOD )
+          IF ( LOCAL .AND. (FLOUTG .OR. FLOUTG2) ) then
+            CALL W3OUTG ( VA, FLPFLD, FLOUTG, FLOUTG2 )
+          end if
+        end if ! if (use_historync) then
+        !
+        if (use_restartnc) then
+          if (rstwr) then
+            call set_user_timestring(tend,user_timestring)
+            fname = trim(user_restfname)//trim(user_timestring)//'.nc'
+            call write_restart(trim(fname), va, mapsta+8*mapst2)
+          end if
         end if
         !
 #ifdef W3_MPI
         FLGMPI = .FALSE.
         NRQMAX = 0
+#endif
         !
-        do_startall = .false.
-        if (w3_cesmcoupled_flag .and. histwr) then
-          IF ( FLOUT(1) .OR.  FLOUT(7) ) THEN
-            do_startall = .true.
-          end IF
-        else
-          CPLWRTFLG=.FALSE.
-          IF ( FLOUT(7) .AND. SBSED ) THEN
-            IF (DSEC21(TIME,TONEXT(:,7)).EQ.0.) THEN
-              CPLWRTFLG=.TRUE.
-            END IF
-          END IF
-          IF ( ( (DSEC21(TIME,TONEXT(:,1)).EQ.0.) .AND. FLOUT(1) ) .OR. &
-               ( CPLWRTFLG ) ) THEN
-            do_startall = .true.
-          end IF
-        end if
-        if (do_startall) then
+#ifdef W3_MPI
+        IF ( (FLOUTG) .OR. (FLOUTG2 .AND. SBSED) ) THEN
           IF (.NOT. LPDLIB) THEN
             IF (NRQGO.NE.0 ) THEN
+#endif
+#ifdef W3_MPI
               CALL MPI_STARTALL ( NRQGO, IRQGO , IERR_MPI )
+#endif
 
+#ifdef W3_MPI
               FLGMPI(0) = .TRUE.
               NRQMAX    = MAX ( NRQMAX , NRQGO )
+#endif
 #ifdef W3_MPIT
               WRITE (NDST,9043) '1a', NRQGO, NRQMAX, NAPFLD
 #endif
+#ifdef W3_MPI
             END IF
+#endif
             !
+#ifdef W3_MPI
             IF (NRQGO2.NE.0 ) THEN
+#endif
+#ifdef W3_MPI
               CALL MPI_STARTALL ( NRQGO2, IRQGO2, IERR_MPI )
-
+#endif
+#ifdef W3_MPI
               FLGMPI(1) = .TRUE.
               NRQMAX    = MAX ( NRQMAX , NRQGO2 )
+#endif
 #ifdef W3_MPIT
               WRITE (NDST,9043) '1b', NRQGO2, NRQMAX, NAPFLD
 #endif
+#ifdef W3_MPI
             END IF
           ELSE
+#endif
 #ifdef W3_PDLIB
             CALL DO_OUTPUT_EXCHANGES(IMOD)
 #endif
+#ifdef W3_MPI
           END IF ! IF (.NOT. LPDLIB) THEN
-        END IF ! if (do_startall)
+        END IF
 #endif
         call print_memcheck(memunit, 'memcheck_____:'//' WW3_WAVE AFTER TIME LOOP 1')
         !
@@ -2563,29 +2567,6 @@ CONTAINS
 
           IF ( FLOUT(J) ) THEN
             !
-            !
-            ! Determine output flags
-            !
-            if (w3_sbs_flag) then
-              do_gridded_output = ( j .eq. 1 )  .or. ( j .eq. 7 )
-            else
-              if (w3_cesmcoupled_flag) then
-                do_gridded_output = ( j .eq. 1 ) .and. histwr
-              else
-                do_gridded_output = ( j .eq. 1 )
-              end if
-            end if
-            do_point_output                = (j .eq. 2)
-            do_track_output                = (j .eq. 3)
-            if (w3_cesmcoupled_flag) then
-              do_restart_output = (j .eq. 4) .and. rstwr
-            else
-              do_restart_output = (j .eq. 4)
-            end if
-            do_wavefield_separation_output = (j .eq. 5)
-            do_sf_output                   = (j .eq. 6)
-            do_coupler_output              = (j .eq. 7)
-            !
             ! 4.d Perform output
             !
 #ifdef W3_NL5
@@ -2595,75 +2576,94 @@ CONTAINS
             DTTST   = DSEC21 ( TIME, TOUT )
             !
             IF ( DTTST .EQ. 0. ) THEN
-              if (do_gridded_output) then
-                if (user_netcdf_grdout) then
-#ifdef W3_MPI
-                  IF ( FLGMPI(0) )CALL MPI_WAITALL( NRQGO, IRQGO, STATIO, IERR_MPI )
-                  FLGMPI(0) = .FALSE.
+              IF ( ( J .EQ. 1 )              &
+#ifdef W3_SBS
+                   .OR. ( J .EQ. 7 )         &
 #endif
-                  IF ( IAPROC .EQ. NAPFLD ) THEN
+                   .and. .not. use_historync) THEN
+                IF ( IAPROC .EQ. NAPFLD ) THEN
 #ifdef W3_MPI
-                    IF ( FLGMPI(1) ) CALL MPI_WAITALL( NRQGO2, IRQGO2, STATIO, IERR_MPI )
-                    FLGMPI(1) = .FALSE.
+                  IF ( FLGMPI(1) ) CALL MPI_WAITALL ( NRQGO2, IRQGO2, STATIO, IERR_MPI )
+                  FLGMPI(1) = .FALSE.
 #endif
-                    CALL W3IOGONCD ()
-                  END IF
-                else
-                  ! default (binary) output
-                  IF ( IAPROC .EQ. NAPFLD ) THEN
-#ifdef W3_MPI
-                    IF ( FLGMPI(1) ) CALL MPI_WAITALL( NRQGO2, IRQGO2, STATIO, IERR_MPI )
-                    FLGMPI(1) = .FALSE.
+                  !
+#ifdef W3_SBS
+                  IF ( J .EQ. 1 ) THEN
 #endif
-                    if (w3_sbs_flag) then
-                      IF ( J .EQ. 1 ) THEN
-                        CALL W3IOGO( 'WRITE', NDS(7), ITEST, IMOD )
-                      ENDIF
-
-                      ! Generate output flag file for fields and SBS coupling.
-                      CALL STME21 ( TIME, IDTIME )
-                      FOUTNAME = 'Field_done.' // IDTIME(1:4) &
-                           // IDTIME(6:7) // IDTIME(9:10) &
-                           // IDTIME(12:13) // '.' // TRIM(FILEXT)
-                      OPEN( UNIT=NDSOFLG, FILE=FOUTNAME)
-                      CLOSE( NDSOFLG )
-                    else
-                      CALL W3IOGO( 'WRITE', NDS(7), ITEST, IMOD )
-                    endif
-                  end if
-                end if ! user_netcdf_grdout
-
-              ELSE IF ( do_point_output ) THEN
-                IF ( IAPROC .EQ. NAPPNT ) THEN
-                  CALL W3IOPE ( VA )
-                  CALL W3IOPO ( 'WRITE', NDS(8), ITEST, IMOD )
+                    CALL W3IOGO( 'WRITE', NDS(7), ITEST, IMOD &
+#ifdef W3_ASCII
+                         ,NDS(14)                          &
+#endif
+                         )
+#ifdef W3_SBS
+                  ENDIF
+#endif
+                  !
+#ifdef W3_SBS
+                  !
+                  !     Generate output flag file for fields and SBS coupling.
+                  !
+                  JJ = LEN_TRIM ( FILEXT )
+                  CALL STME21 ( TIME, IDTIME )
+                  FOUTNAME = 'Field_done.' // IDTIME(1:4) &
+                       // IDTIME(6:7) // IDTIME(9:10) &
+                       // IDTIME(12:13) // '.' // FILEXT(1:JJ)
+#endif
+                  !
+#ifdef W3_SBS
+                  OPEN( UNIT=NDSOFLG, FILE=FOUTNAME)
+                  CLOSE( NDSOFLG )
+#endif
                 END IF
-
-              ELSE IF ( do_track_output ) THEN
+                !
+              ELSE IF ( J .EQ. 2 ) THEN
+                !
+                !   Point output
+                !
+                IF ( IAPROC .EQ. NAPPNT ) THEN
+                  !
+                  !   Gets the necessary spectral data
+                  !
+                  CALL W3IOPE ( VA )
+#ifdef W3_BIN2NC
+                  CALL W3IOPON ( 'WRITE', NDS(8), ITEST, IMOD )
+#else
+                  CALL W3IOPO ( 'WRITE', NDS(8), ITEST, IMOD &
+#ifdef W3_ASCII
+                          ,NDS(15)                           &
+#endif
+                          )
+#endif
+                  END IF
+                !
+              ELSE IF ( J .EQ. 3 ) THEN
+                !
+                ! Track output
+                !
                 CALL W3IOTR ( NDS(11), NDS(12), VA, IMOD )
-
-              ELSE IF ( do_restart_output ) THEN
+              ELSE IF ( J .EQ. 4 .and. .not. use_restartnc) THEN
                 CALL W3IORS ('HOT', NDS(6), XXX, IMOD, FLOUT(8) )
                 ITEST = RSTYPE
-
-              ELSE IF ( do_wavefield_separation_output ) THEN
+              ELSE IF ( J .EQ. 5 ) THEN
                 IF ( IAPROC .EQ. NAPBPT ) THEN
 #ifdef W3_MPI
                   IF (NRQBP2.NE.0) CALL MPI_WAITALL ( NRQBP2, IRQBP2,STATIO, IERR_MPI )
 #endif
-                  CALL W3IOBC ( 'WRITE', NDS(10), TIME, TIME, ITEST, IMOD )
+                  CALL W3IOBC ( 'WRITE', NDS(10),         &
+                       TIME, TIME, ITEST, IMOD )
                 END IF
-              ELSE IF ( do_sf_output ) THEN
+              ELSE IF ( J .EQ. 6 ) THEN
                 CALL W3IOSF ( NDS(13), IMOD )
 #ifdef W3_OASIS
-              ELSE IF ( do_coupler_output ) THEN
+              ELSE IF ( J .EQ. 7 ) THEN
                 !
                 ! Send variables to atmospheric or ocean circulation or ice model
                 !
                 IF (DTOUT(7).NE.0) THEN
                   IF ( (MOD(ID_OASIS_TIME,NINT(DTOUT(7))) .EQ. 0 ) .AND. &
                        (DSEC21 (TIME00, TIME) .GT. 0.0) ) THEN
-                    IF ( (CPLT0 .AND. (DSEC21 (TIME, TIMEN) .GT. 0.0)) .OR. .NOT. CPLT0 ) THEN
+                    IF ( (CPLT0 .AND. (DSEC21 (TIME, TIMEN) .GT. 0.0)) .OR. &
+                         .NOT. CPLT0 ) THEN
                       IF (CPLT0) ID_OASIS_TIME = NINT(DSEC21 ( TIME00 , TIME ))
 
 #endif
@@ -2722,7 +2722,7 @@ CONTAINS
 
         ! If there is a second stream of restart files then J=8 and FLOUT(8)=.TRUE.
         J=8
-        IF ( FLOUT(J) ) THEN
+        IF ( FLOUT(J) .and. .not. use_restartnc) THEN
           !
           ! 4.d Perform output
           !
@@ -2767,11 +2767,6 @@ CONTAINS
         !
 #ifdef W3_MPI
         IF ( FLGMPI(0) ) CALL MPI_WAITALL ( NRQGO, IRQGO , STATIO, IERR_MPI )
-        if (user_netcdf_grdout) then
-          IF ( FLGMPI(1) .and. ( IAPROC .EQ. NAPFLD ) ) then
-            CALL MPI_WAITALL ( NRQGO2, IRQGO2 , STATIO, IERR_MPI )
-          end if
-        end if
         IF ( FLGMPI(2) ) CALL MPI_WAITALL ( NRQPO, IRQPO1, STATIO, IERR_MPI )
         IF ( FLGMPI(4) ) CALL MPI_WAITALL ( NRQRS, IRQRS , STATIO, IERR_MPI )
         IF ( FLGMPI(8) ) CALL MPI_WAITALL ( NRQRS, IRQRS , STATIO, IERR_MPI )

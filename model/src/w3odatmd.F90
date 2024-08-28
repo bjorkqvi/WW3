@@ -571,8 +571,13 @@ MODULE W3ODATMD
                                                      !! if true => write history file (snapshot)
   logical            :: rstwr = .false.              !<@public logical to trigger restart write
                                                      !! if true => write restart
-  logical            :: user_netcdf_grdout = .false. !<@public logical flag to use netCDF for gridded
+  logical            :: use_historync = .false.       !<@public logical flag to use netCDF for gridded
                                                      !! field output
+  logical            :: use_restartnc = .false.       !<@public logical flag to read and write netCDF restarts
+  logical            :: restart_from_binary = .false. !<@public logical flag for restarting from binary restart
+                                                      ! when use_restartnc is true
+  logical            :: logfile_is_assigned = .false. !<@public logical flag for assignment of nds(1) to specified
+                                                      !! log file in mesh cap
   character(len= 36) :: time_origin = ''             !< @public the time_origin used for netCDF output
   character(len= 36) :: calendar_name = ''           !< @public the calendar used for netCDF output
   integer(kind=8)    :: elapsed_secs = 0             !< @public the time in seconds from the time_origin

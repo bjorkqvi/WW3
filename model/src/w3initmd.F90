@@ -445,6 +445,10 @@ CONTAINS
 #ifdef W3_UOST
     USE W3UOSTMD, ONLY: UOST_SETGRID
 #endif
+    use w3timemd,        only : set_user_timestring
+    use w3odatmd,        only : runtype, restart_from_binary, use_restartnc, user_restfname
+    use w3odatmd,        only : logfile_is_assigned
+    use wav_restart_mod, only : read_restart
     !/
 #ifdef W3_MPI
     INCLUDE "mpif.h"
@@ -512,7 +516,10 @@ CONTAINS
 #ifdef W3_PDLIB
     INTEGER                 :: IScal(1), IPROC
 #endif
+    logical                 :: exists
     integer                 :: memunit
+    character(len=16)       :: user_timestring    !YYYY-MM-DD-SSSSS
+    character(len=1024)     :: fname
     !/
     !/ ------------------------------------------------------------------- /
     !
@@ -659,6 +666,7 @@ CONTAINS
     !
     ! 1.c Open files without unpacking MDS ,,,
     !
+    if (.not. logfile_is_assigned) then
     IE     = LEN_TRIM(FEXT)
     LFILE  = 'log.' // FEXT(:IE)
     IFL    = LEN_TRIM(LFILE)
@@ -676,11 +684,10 @@ CONTAINS
     IFT    = LEN_TRIM(TFILE)
     J      = LEN_TRIM(FNMPRE)
     !
-#ifndef W3_CESMCOUPLED
     IF ( OUTPTS(IMOD)%IAPROC .EQ. OUTPTS(IMOD)%NAPLOG )             &
          OPEN (MDS(1),FILE=FNMPRE(:J)//LFILE(:IFL),ERR=888,IOSTAT=IERR)
-#endif
     !
+    end if ! if (.not. logfile_is_assigned)
     IF ( MDS(3).NE.MDS(1) .AND. MDS(3).NE.MDS(4) .AND. TSTOUT ) THEN
       INQUIRE (MDS(3),OPENED=OPENED)
       IF ( .NOT. OPENED ) OPEN (MDS(3),FILE=FNMPRE(:J)//TFILE(:IFT), ERR=889, &
@@ -952,6 +959,30 @@ CONTAINS
     ! 3.a Read restart file
     !
     VA(:,:) = 0.
+    if (use_restartnc) then
+      if (runtype == 'continue' )then
+        call set_user_timestring(time,user_timestring)
+        if (restart_from_binary) then
+          fname = trim(user_restfname)//trim(user_timestring)
+        else
+          fname = trim(user_restfname)//trim(user_timestring)//'.nc'
+        endif
+        inquire(file=trim(fname), exist=exists)
+        if (exists) then
+          if (restart_from_binary) then
+            call w3iors('READ', nds(6), sig(nk), imod, filename=trim(fname))
+          else
+            call read_restart(trim(fname), va, mapsta)
+          end if
+        else
+          call extcde (60, msg="required restart file " // trim(fname) // " does not exist")
+        end if
+      else
+        call read_restart('none', va, mapsta)
+        mapsta = maptst
+        flcold = .true.
+      end if
+    else
 #ifdef W3_DEBUGCOH
     CALL ALL_VA_INTEGRAL_PRINT(IMOD, "Before W3IORS call", 1)
 #endif
@@ -985,7 +1016,7 @@ CONTAINS
 #ifdef W3_TIMINGS
     CALL PRINT_MY_TIME("After restart inits")
 #endif
-
+    end if ! if (use_restartnc)
     !
     ! 3.b Compare MAPSTA from grid and restart
     !
@@ -2171,6 +2202,7 @@ CONTAINS
 #endif
     USE W3GDATMD, ONLY: GTYPE, UNGTYPE
     USE CONSTANTS, ONLY: LPDLIB
+    use w3odatmd, only : restart_from_binary, use_restartnc, use_historync
     !/
 #ifdef W3_MPI
     INCLUDE "mpif.h"
@@ -2202,6 +2234,7 @@ CONTAINS
 #ifdef W3_MPIT
     CHARACTER(LEN=5)      :: STRING
 #endif
+    logical               :: do_rstsetup
     !/
     !/ ------------------------------------------------------------------- /
     !/
@@ -2225,7 +2258,7 @@ CONTAINS
     IROOT  = NAPFLD - 1
     !
     !
-    IF ((FLOUT(1) .OR. FLOUT(7)) .and. (.not. LPDLIB)) THEN
+    IF ((FLOUT(1) .OR. FLOUT(7)) .and. (.not. LPDLIB) .and. (.not. use_historync)) THEN
       !
       ! NRQMAX is the maximum number of output fields that require MPI communication,
       ! aimed to gather field values stored in each processor into one processor in
@@ -4760,7 +4793,7 @@ CONTAINS
         CALL EXTCDE (11)
       END IF
       !
-    END IF ! IF ((FLOUT(1) .OR. FLOUT(7)) .and. (.not. LPDLIB)) THEN
+    END IF ! IF ((FLOUT(1) .OR. FLOUT(7)) .and. (.not. LPDLIB) .and. (.not. use_historync)) THEN
     !
     ! 2.  Set-up for W3IORS ---------------------------------------------- /
     ! 2.a General preparations
@@ -4769,7 +4802,17 @@ CONTAINS
     IH     = 0
     IROOT  = NAPRST - 1
     !
-    IF ((FLOUT(4) .OR. FLOUT(8)) .and. (.not. LPDLIB)) THEN
+    if (use_restartnc) then
+      if (restart_from_binary) then
+        do_rstsetup = .true.
+      else
+        do_rstsetup = .false.
+      end if
+    else
+      do_rstsetup = .true.
+    end if
+    !
+    IF ((FLOUT(4) .OR. FLOUT(8)) .and. (.not. LPDLIB) .and. do_rstsetup) THEN
       IF (OARST) THEN
         ALLOCATE ( OUTPTS(IMOD)%OUT4%IRQRS(34*NAPROC) )
       ELSE
@@ -5647,7 +5690,7 @@ CONTAINS
         !
       END IF
       !
-    END IF ! IF ((FLOUT(4) .OR. FLOUT(8)) .and. (.not. LPDLIB)) THEN
+    END IF ! IF ((FLOUT(4) .OR. FLOUT(8)) .and. (.not. LPDLIB) .and. do_rstsetup) THEN
 #endif
     !
     ! 3.  Set-up for W3IOBC ( SENDs ) ------------------------------------ /

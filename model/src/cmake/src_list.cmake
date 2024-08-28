@@ -56,7 +56,7 @@ set(ftn_src
   wmwavemd.F90
   w3tidemd.F90
   wav_grdout.F90
-  w3iogoncdmd.F90
+  w3iogoncmd.F90
   wav_shr_flags.F90
   )
 
@@ -67,6 +67,8 @@ set(nuopc_mesh_cap_src
   wav_comp_nuopc.F90
   wav_import_export.F90
   wav_wrapper_mod.F90
+  wav_pio_mod.F90
+  wav_restart_mod.F90
   )
 
 set(esmf_multi_cap_src

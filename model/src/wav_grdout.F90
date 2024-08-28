@@ -1,3 +1,17 @@
+!> @file wav_grdout
+!!
+!> Create a list of fields for output
+!!
+!> @details Utilizes the list of variables specified via WW3's flout array
+!! to define the variables written to the file. The elements of the flout
+!! array are here referred to as "tags". Tags are not 1:1 with output fields.
+!! For example, the tag "CUR" means that the ocean currents, comprising two
+!! directional values are requested. They will both be requested via the single
+!! CUR tag. The tag "SXY" means that three components of radiation stresses
+!! are requested (XX,YY,XY).
+!!
+!> @author Denise.Worthen@noaa.gov
+!> @date 09-19-2022
 module wav_grdout
 
   use w3odatmd    , only: nogrp, ngrpp
@@ -30,14 +44,19 @@ module wav_grdout
   !===============================================================================
 contains
   !===============================================================================
+  !> Scan through all possible fields to determine a list of requested variables
+  !!
+  !! @param[in]   stdout            the logfile on the root_task
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 09-19-2022
+  subroutine wavinit_grdout(stdout)
 
-  !====================================================================================
-  subroutine wavinit_grdout
-
-    use w3gdatmd    , only: e3df, p2msf, us3df, usspf
-    use w3odatmd    , only: nds, iaproc, napout
-    use w3iogomd    , only: fldout
-    use w3servmd    , only: strsplit
+    use w3gdatmd, only: e3df, p2msf, us3df, usspf
+    use w3odatmd, only: iaproc, napout
+    use w3iogomd, only: fldout
+    use w3servmd, only: strsplit
+    integer, intent(in) :: stdout
 
     ! local variables
     character(len=100)      :: inptags(100) = ''
@@ -105,22 +124,26 @@ contains
 
     ! check
     if ( iaproc == napout ) then
-      write(nds(1),*)
-      write(nds(1),'(a)')' --------------------------------------------------'
-      write(nds(1),'(a)')'  Requested gridded output variables : '
-      write(nds(1),'(a)')' --------------------------------------------------'
-      write(nds(1),*)
+      write(stdout,*)
+      write(stdout,'(a)')' --------------------------------------------------'
+      write(stdout,'(a)')'  Requested gridded output variables : '
+      write(stdout,'(a)')' --------------------------------------------------'
+      write(stdout,*)
       do n = 1,nout
-        write(nds(1),'(i5,2a12,a50)')n,'  '//trim(outvars(n)%tag), &
+        write(stdout,'(i5,2a12,a50)')n,'  '//trim(outvars(n)%tag), &
              '  '//trim(outvars(n)%var_name), &
              '  '//trim(outvars(n)%long_name)
       end do
-      write(nds(1),*)
+      write(stdout,*)
     end if
 
   end subroutine wavinit_grdout
 
   !====================================================================================
+  !> Define the available output fields and their attributes
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 09-19-2022
   subroutine initialize_gridout
 
     gridoutdefs(:,:)%tag = ""
@@ -130,7 +153,6 @@ contains
     gridoutdefs(:,:)%dims = ""
     gridoutdefs(:,:)%validout = .false.
 
-    ! TODO: confirm unit values
     !  1   Forcing Fields
     gridoutdefs(1,1:14) = [ &
          varatts( "DPT  ", "DW        ", "Water depth                                     ", "m         ", "  ", .false.) , &
@@ -178,7 +200,7 @@ contains
          varatts( "STH1M", "STH1M     ", "Directional spreading from a1,b2                ", "deg       ", "k ", .false.) , &
          varatts( "TH2M ", "TH2M      ", "Mean wave direction from a2,b2                  ", "deg       ", "k ", .false.) , &
          varatts( "STH2M", "STH2M     ", "Directional spreading from a2,b2                ", "deg       ", "k ", .false.) , &
-                                !TODO: has reverse indices (nk,nsea)
+         !TODO: has reverse indices (nk,nsea)
          varatts( "WN   ", "WN        ", "Wavenumber array                                ", "m-1       ", "k ", .false.)   &
          ]
 
