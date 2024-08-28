@@ -355,22 +355,6 @@ contains
     write(logmsg,'(A,l)') trim(subname)//': Wave multigrid setting is ',multigrid
     call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
 
-    use_restartnc = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='use_restartnc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-      use_restartnc=(trim(cvalue)=="true")
-    end if
-    write(logmsg,'(A,l)') trim(subname)//': Wave use_restartnc setting is ',use_restartnc
-    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
-    restart_from_binary = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='restart_from_binary', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-      restart_from_binary=(trim(cvalue)=="true")
-    end if
-    write(logmsg,'(A,l)') trim(subname)//': Wave restart_from_binary setting is ',restart_from_binary
-    call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
     ! Determine wave-ice coupling
     wav_coupling_to_cice = .false.
     call NUOPC_CompAttributeGet(gcomp, name='wav_coupling_to_cice', value=cvalue, isPresent=isPresent, &
@@ -423,24 +407,24 @@ contains
   !> @date 01-05-2022
   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
 
-    use w3odatmd     , only : w3nout, w3seto, naproc, iaproc, naperr, napout
-    use w3timemd     , only : stme21
-    use w3adatmd     , only : w3naux, w3seta
-    use w3idatmd     , only : w3seti, w3ninp
-    use w3gdatmd     , only : nk, nseal, nsea, nx, ny, mapsf, w3nmod, w3setg
-    use w3gdatmd     , only : rlgtype, ungtype, gtype
-    use w3wdatmd     , only : va, time, w3ndat, w3dimw, w3setw
-    use w3parall     , only : init_get_isea
+    use w3odatmd        , only : w3nout, w3seto, naproc, iaproc, naperr, napout
+    use w3timemd        , only : stme21
+    use w3adatmd        , only : w3naux, w3seta
+    use w3idatmd        , only : w3seti, w3ninp
+    use w3gdatmd        , only : nk, nseal, nsea, nx, ny, mapsf, w3nmod, w3setg
+    use w3gdatmd        , only : rlgtype, ungtype, gtype
+    use w3wdatmd        , only : va, time, w3ndat, w3dimw, w3setw
+    use w3parall        , only : init_get_isea
 #ifndef W3_CESMCOUPLED
-    use wminitmd     , only : wminit, wminitnml
-    use wmunitmd     , only : wmuget, wmuset
+    use wminitmd        , only : wminit, wminitnml
+    use wmunitmd        , only : wmuget, wmuset
 #endif
-    use wav_shel_inp , only : set_shel_io
-    use wav_grdout   , only : wavinit_grdout
-    use wav_pio_mod  , only : wav_pio_init
-    use wav_shr_mod  , only : diagnose_mesh, write_meshdecomp
+    use wav_shel_inp    , only : set_shel_io
+    use wav_history_mod , only : wav_history_init
+    use wav_pio_mod     , only : wav_pio_init
+    use wav_shr_mod     , only : diagnose_mesh, write_meshdecomp
 #ifdef W3_PDLIB
-    use yowNodepool  , only : ng
+    use yowNodepool     , only : ng
 #endif
 
     ! input/output variables
@@ -490,6 +474,8 @@ contains
     integer                        :: stdout
     integer                        :: petcount
     real(r8)                       :: toff
+    logical                        :: isPresent, isSet
+    character(len=CL)              :: logmsg
     character(ESMF_MAXSTR)         :: preamb = './'
     character(ESMF_MAXSTR)         :: ifname = 'ww3_multi.inp'
     character(len=*), parameter    :: subname = '(wav_comp_nuopc:InitializeRealize)'
@@ -573,7 +559,7 @@ contains
         open (newunit=stdout, file='log.ww3')
         logfile_is_assigned = .true.
       else
-      stdout = 6
+        stdout = 6
       end if
     end if
 
@@ -682,9 +668,84 @@ contains
 #endif
 
     !--------------------------------------------------------------------
-    ! initialize PIO
+    ! Initialize PIO. This needs to be done prior to the call to w3init
+    ! in order to read the restart file. The filename strings must also
+    ! be available
     !--------------------------------------------------------------------
-    call wav_pio_init(gcomp, mpi_comm, stdout, rc)
+
+    if (cesmcoupled) then
+      ! custom restart and history file names are used for CESM
+      use_user_histname = .true.
+      use_user_restname = .true.
+
+      if (len_trim(inst_suffix) > 0) then
+        user_restfname = trim(casename)//'.ww3'//trim(inst_suffix)//'.r.'
+        user_histfname = trim(casename)//'.ww3'//trim(inst_suffix)//'.hi.'
+      else
+        user_restfname = trim(casename)//'.ww3.r.'
+        user_histfname = trim(casename)//'.ww3.hi.'
+      endif
+
+      ! netcdf is used for CESM history and restart
+      use_historync = .true.
+      use_restartnc = .true.
+    else
+      call NUOPC_CompAttributeGet(gcomp, name='use_restartnc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (isPresent .and. isSet) then
+        use_restartnc=(trim(cvalue)=="true")
+      end if
+      write(logmsg,'(A,l)') trim(subname)//': Wave use_restartnc setting is ',use_restartnc
+      call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
+
+      call NUOPC_CompAttributeGet(gcomp, name='use_historync', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (isPresent .and. isSet) then
+        use_historync=(trim(cvalue)=="true")
+      end if
+      if (root_task) write(stdout,'(a,l)') trim(subname)//': Wave use_historync setting is ',use_historync
+
+      call NUOPC_CompAttributeGet(gcomp, name='user_sets_histname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (isPresent .and. isSet) then
+        use_user_histname=(trim(cvalue)=="true")
+      end if
+      if (root_task) write(stdout,'(a,l)') trim(subname)//': Custom history name setting is ',use_user_histname
+
+      if (use_restartnc) then
+        use_user_restname = .true.
+      else
+        call NUOPC_CompAttributeGet(gcomp, name='user_sets_restname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        if (isPresent .and. isSet) then
+          use_user_restname=(trim(cvalue)=="true")
+        end if
+      end if
+      if (root_task) write(stdout,'(a,l)') trim(subname)//': Custom restart name setting is ',use_user_restname
+
+      if (use_user_histname) then
+        user_histfname = trim(casename)//'.ww3.hi.'
+      end if
+      if (use_user_restname) then
+        user_restfname = trim(casename)//'.ww3.r.'
+      end if
+    end if ! if (cesmcoupled)
+
+    ! allow startup from binary restarts as special case
+    if (use_restartnc) then
+      call NUOPC_CompAttributeGet(gcomp, name='restart_from_binary', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (isPresent .and. isSet) then
+        restart_from_binary=(trim(cvalue)=="true")
+      end if
+      write(logmsg,'(A,l)') trim(subname)//': Wave restart_from_binary setting is ',restart_from_binary
+      call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
+    end if
+
+    if (use_restartnc .or. use_historync) then
+      call wav_pio_init(gcomp, mpi_comm, stdout, rc)
+    end if
+
     !--------------------------------------------------------------------
     ! Wave model initialization
     !--------------------------------------------------------------------
@@ -723,7 +784,6 @@ contains
     call waveinit_cesm(gcomp, ntrace, mpi_comm, mds, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 #endif
-
     ! call mpi_barrier ( mpi_comm, ierr )
     if ( root_task ) then
       inquire(unit=stdout, name=logfile)
@@ -901,8 +961,9 @@ contains
     !--------------------------------------------------------------------
     ! Intialize the list of requested output variables for netCDF output
     !--------------------------------------------------------------------
+
     if (use_historync) then
-      call wavinit_grdout(stdout)
+      call wav_history_init(stdout)
     end if
     if (root_task) call ufs_logtimer(nu_timer,time,start_tod,'InitializeRealize time: ',runtimelog,wtime)
 
@@ -1125,29 +1186,29 @@ contains
     !------------
     if(profile_memory) call ESMF_VMLogMemInfo("Entering WW3 Run : ")
 
-      ! Determine if time to write ww3 restart files
-      call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+    ! Determine if time to write ww3 restart files
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
-        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-        rstwr = .true.
-        call ESMF_AlarmRingerOff( alarm, rc=rc )
-        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else
-        rstwr = .false.
-      endif
+      rstwr = .true.
+      call ESMF_AlarmRingerOff( alarm, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+      rstwr = .false.
+    endif
 
-      ! Determine if time to write ww3 history files
-      call ESMF_ClockGetAlarm(clock, alarmname='alarm_history', alarm=alarm, rc=rc)
+    ! Determine if time to write ww3 history files
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_history', alarm=alarm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
-        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-        histwr = .true.
-        call ESMF_AlarmRingerOff( alarm, rc=rc )
-        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else
-        histwr = .false.
-    end if
+      histwr = .true.
+      call ESMF_AlarmRingerOff( alarm, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+      histwr = .false.
+    endif
 
     ! Advance the wave model
 #ifndef W3_CESMCOUPLED
@@ -1554,23 +1615,6 @@ contains
       inflags2(-3) = .false. ! ice floe size
     end if
 
-    ! custom restart and history file names are used for CESM
-    use_user_histname = .true.
-    use_user_restname = .true.
-
-    ! if runtype=initial, the initfile will be read in w3iorsmd
-    if (len_trim(inst_suffix) > 0) then
-      user_restfname = trim(casename)//'.ww3'//trim(inst_suffix)//'.r.'
-      user_histfname = trim(casename)//'.ww3'//trim(inst_suffix)//'.hi.'
-    else
-      user_restfname = trim(casename)//'.ww3.r.'
-      user_histfname = trim(casename)//'.ww3.hi.'
-    endif
-
-    ! netcdf is used for CESM history and restart
-    use_historync = .true.
-    use_restartnc = .true.
-
     ! Read in initial/restart data and initialize the model
     ! ww3 read initialization occurs in w3iors (which is called by initmd in module w3initmd)
     ! ww3 always starts up from a 'restart' file type
@@ -1639,34 +1683,6 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
 
     stdout = mds(1) ! this is log.ww3
-    ! restart and history alarms are optional for UFS and used via allcomp config settings
-    call NUOPC_CompAttributeGet(gcomp, name='user_sets_histname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-      use_user_histname=(trim(cvalue)=="true")
-    end if
-    if (root_task) write(stdout,'(a,l)') trim(subname)//': Custom history names in use ',use_user_histname
-
-    call NUOPC_CompAttributeGet(gcomp, name='user_sets_restname', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-      use_user_restname=(trim(cvalue)=="true")
-    end if
-    if (root_task) write(stdout,'(a,l)') trim(subname)//': Custom restart names in use ',use_user_restname
-
-    call NUOPC_CompAttributeGet(gcomp, name='use_historync', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-      use_historync=(trim(cvalue)=="true")
-    end if
-    if (root_task) write(stdout,'(a,l)') trim(subname)//': Gridded netcdf output is requested ',use_historync
-
-    if (use_user_histname) then
-      user_histfname = trim(casename)//'.ww3.hi.'
-    end if
-    if (use_user_restname) then
-      user_restfname = trim(casename)//'.ww3.r.'
-    end if
 
     fnmpre = './'
 

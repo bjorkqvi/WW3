@@ -55,8 +55,7 @@ set(ftn_src
   wmupdtmd.F90
   wmwavemd.F90
   w3tidemd.F90
-  wav_grdout.F90
-  w3iogoncmd.F90
+  wav_history_mod.F90
   wav_shr_flags.F90
   )
 

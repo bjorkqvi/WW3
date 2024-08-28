@@ -646,47 +646,46 @@ CONTAINS
     IF (FSTOTALIMP .and. .NOT. LPDLIB) THEN
       WRITE(NDSE,*) 'IMPTOTAL is selected'
       WRITE(NDSE,*) 'But PDLIB is not'
-      CALL FLUSH(NDSE) 
-      STOP 
+      CALL FLUSH(NDSE)
+      STOP
     ELSE IF (FSTOTALEXP .and. .NOT. LPDLIB) THEN
       WRITE(NDSE,*) 'EXPTOTAL is selected'
       WRITE(NDSE,*) 'But PDLIB is not'
-      CALL FLUSH(NDSE) 
-      STOP 
+      CALL FLUSH(NDSE)
+      STOP
     END IF
 #ifdef W3_PDLIB
     IF (B_JGS_BLOCK_GAUSS_SEIDEL .AND. .NOT. B_JGS_USE_JACOBI) THEN
       WRITE(NDSE,*) 'B_JGS_BLOCK_GAUSS_SEIDEL is used but the Jacobi solver is not choosen'
       WRITE(NDSE,*) 'Please set JGS_USE_JACOBI .eqv. .true.'
-      CALL FLUSH(NDSE) 
-      STOP 
+      CALL FLUSH(NDSE)
+      STOP
     ENDIF
 #endif
-      
     !
     ! 1.c Open files without unpacking MDS ,,,
     !
     if (.not. logfile_is_assigned) then
-    IE     = LEN_TRIM(FEXT)
-    LFILE  = 'log.' // FEXT(:IE)
-    IFL    = LEN_TRIM(LFILE)
+      IE     = LEN_TRIM(FEXT)
+      LFILE  = 'log.' // FEXT(:IE)
+      IFL    = LEN_TRIM(LFILE)
 #ifdef W3_SHRD
-    TFILE  = 'test.' // FEXT(:IE)
+      TFILE  = 'test.' // FEXT(:IE)
 #endif
 #ifdef W3_DIST
-    IW     = 1 + INT ( LOG10 ( REAL(NAPROC) + 0.5 ) )
-    IW     = MAX ( 3 , MIN ( 9 , IW ) )
-    WRITE (FORMAT,'(A5,I1.1,A1,I1.1,A4)')                    &
-         '(A4,I', IW, '.', IW, ',2A)'
-    WRITE (TFILE,FORMAT) 'test',                             &
-         OUTPTS(IMOD)%IAPROC, '.', FEXT(:IE)
+      IW     = 1 + INT ( LOG10 ( REAL(NAPROC) + 0.5 ) )
+      IW     = MAX ( 3 , MIN ( 9 , IW ) )
+      WRITE (FORMAT,'(A5,I1.1,A1,I1.1,A4)')                    &
+           '(A4,I', IW, '.', IW, ',2A)'
+      WRITE (TFILE,FORMAT) 'test',                             &
+           OUTPTS(IMOD)%IAPROC, '.', FEXT(:IE)
 #endif
-    IFT    = LEN_TRIM(TFILE)
-    J      = LEN_TRIM(FNMPRE)
-    !
-    IF ( OUTPTS(IMOD)%IAPROC .EQ. OUTPTS(IMOD)%NAPLOG )             &
-         OPEN (MDS(1),FILE=FNMPRE(:J)//LFILE(:IFL),ERR=888,IOSTAT=IERR)
-    !
+      IFT    = LEN_TRIM(TFILE)
+      J      = LEN_TRIM(FNMPRE)
+      !
+      IF ( OUTPTS(IMOD)%IAPROC .EQ. OUTPTS(IMOD)%NAPLOG )             &
+           OPEN (MDS(1),FILE=FNMPRE(:J)//LFILE(:IFL),ERR=888,IOSTAT=IERR)
+      !
     end if ! if (.not. logfile_is_assigned)
     IF ( MDS(3).NE.MDS(1) .AND. MDS(3).NE.MDS(4) .AND. TSTOUT ) THEN
       INQUIRE (MDS(3),OPENED=OPENED)
@@ -984,37 +983,37 @@ CONTAINS
       end if
     else
 #ifdef W3_DEBUGCOH
-    CALL ALL_VA_INTEGRAL_PRINT(IMOD, "Before W3IORS call", 1)
+      CALL ALL_VA_INTEGRAL_PRINT(IMOD, "Before W3IORS call", 1)
 #endif
 #ifdef W3_TIMINGS
-    CALL PRINT_MY_TIME("Before W3IORS")
+      CALL PRINT_MY_TIME("Before W3IORS")
 #endif
-    CALL W3IORS ( 'READ', NDS(6), SIG(NK), IMOD)
+      CALL W3IORS ( 'READ', NDS(6), SIG(NK), IMOD)
 #ifdef W3_TIMINGS
-    CALL PRINT_MY_TIME("After W3IORS")
+      CALL PRINT_MY_TIME("After W3IORS")
 #endif
-    call print_memcheck(memunit, 'memcheck_____:'//' WW3_INIT SECTION 3a')
+      call print_memcheck(memunit, 'memcheck_____:'//' WW3_INIT SECTION 3a')
 
 #ifdef W3_DEBUGCOH
-    CALL ALL_VA_INTEGRAL_PRINT(IMOD, "After W3IORS call", 1)
+      CALL ALL_VA_INTEGRAL_PRINT(IMOD, "After W3IORS call", 1)
 #endif
-    FLCOLD = RSTYPE.LE.1  .OR. RSTYPE.EQ.4
-    IF ( IAPROC .EQ. NAPLOG ) THEN
-      IF (RSTYPE.EQ.0) THEN
-        WRITE (NDSO,930) 'cold start (idealized).'
-      ELSE IF ( RSTYPE .EQ. 1 ) THEN
-        WRITE (NDSO,930) 'cold start (wind).'
-      ELSE IF ( RSTYPE .EQ. 4 ) THEN
-        WRITE (NDSO,930) 'cold start (calm).'
-      ELSE
-        WRITE (NDSO,930) 'full restart.'
+      FLCOLD = RSTYPE.LE.1  .OR. RSTYPE.EQ.4
+      IF ( IAPROC .EQ. NAPLOG ) THEN
+        IF (RSTYPE.EQ.0) THEN
+          WRITE (NDSO,930) 'cold start (idealized).'
+        ELSE IF ( RSTYPE .EQ. 1 ) THEN
+          WRITE (NDSO,930) 'cold start (wind).'
+        ELSE IF ( RSTYPE .EQ. 4 ) THEN
+          WRITE (NDSO,930) 'cold start (calm).'
+        ELSE
+          WRITE (NDSO,930) 'full restart.'
+        END IF
       END IF
-    END IF
 #ifdef W3_DEBUGCOH
-    CALL ALL_VA_INTEGRAL_PRINT(IMOD, "W3INIT, step 4.2", 1)
+      CALL ALL_VA_INTEGRAL_PRINT(IMOD, "W3INIT, step 4.2", 1)
 #endif
 #ifdef W3_TIMINGS
-    CALL PRINT_MY_TIME("After restart inits")
+      CALL PRINT_MY_TIME("After restart inits")
 #endif
     end if ! if (use_restartnc)
     !
