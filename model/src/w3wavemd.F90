@@ -2384,12 +2384,19 @@ CONTAINS
         !
         ! 4.b Processing and MPP preparations
         !
+        FLPART = .FALSE.
+        IF ( FLOUT(1) .AND. FLPFLD ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,1)).EQ.0.
+        IF ( FLOUT(6) ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,6)).EQ.0.
+        !
+#ifdef W3_T
+        WRITE (NDST,9042) LOCAL, FLPART, FLOUTG
+#endif
         if (use_historync) then
           floutg = .false.
           floutg2 = .false.
           if (histwr) then
-            if (flout(6))call w3cprt ( imod )
-            call w3outg ( va, flpfld, .true., .false. )
+            if (flpart) call w3cprt (imod)
+            call w3outg (va, flpfld, .true., .false. )
             call write_history(tend)
           end if
         else
@@ -2405,14 +2412,6 @@ CONTAINS
             FLOUTG2 = .FALSE.
           END IF
           !
-          FLPART = .FALSE.
-          IF ( FLOUT(1) .AND. FLPFLD ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,1)).EQ.0.
-          IF ( FLOUT(6) ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,6)).EQ.0.
-          !
-#ifdef W3_T
-          WRITE (NDST,9042) LOCAL, FLPART, FLOUTG
-#endif
-        !
           IF ( LOCAL .AND. FLPART ) CALL W3CPRT ( IMOD )
           IF ( LOCAL .AND. (FLOUTG .OR. FLOUTG2) ) then
             CALL W3OUTG ( VA, FLPFLD, FLOUTG, FLOUTG2 )
