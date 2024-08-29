@@ -2170,9 +2170,6 @@ CONTAINS
                      /0.4*LOG(MAX(ABS(HML(IX,IY)/4./HS(JSEA)),1.0))+COS(SWW)))
               end if
 
-
-              ALPHALS(JSEA) = ATAN( SIN(SWW) / ( LANGMT(JSEA)**2  &
-                   /0.4*LOG(MAX(ABS(HML(IX,IY)/4./HS(JSEA)),1.0))+COS(SWW)))
               LAPROJ(JSEA) = LANGMT(JSEA) &
                    * SQRT(ABS(COS(ALPHALS(JSEA))) &
                    / ABS(COS(SWW-ALPHALS(JSEA))))
