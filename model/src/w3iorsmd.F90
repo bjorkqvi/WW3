@@ -596,22 +596,11 @@ CONTAINS
         END IF
       ELSE
         READ (NDSR,POS=RPOS,ERR=802,IOSTAT=IERR) TTIME
-!TODO: can this be removed?
-#ifdef W3_CESMCOUPLED
-        if (runtype == 'branch' .or. runtype == 'continue') then
-          IF (TIME(1).NE.TTIME(1) .OR. TIME(2).NE.TTIME(2)) THEN
-            IF ( IAPROC .EQ. NAPERR )                           &
-                 WRITE (NDSE,906) TTIME, TIME
-            CALL EXTCDE ( 20 )
-          END IF
-        end if
-#else
         IF (TIME(1).NE.TTIME(1) .OR. TIME(2).NE.TTIME(2)) THEN
           IF ( IAPROC .EQ. NAPERR )                           &
                WRITE (NDSE,906) TTIME, TIME
           CALL EXTCDE ( 20 )
         END IF
-#endif
       END IF
       !
 #ifdef W3_T
