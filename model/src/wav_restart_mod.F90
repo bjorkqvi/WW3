@@ -9,6 +9,7 @@ module wav_restart_mod
   use w3parall      , only : init_get_isea
   use w3adatmd      , only : nsealm
   use w3gdatmd      , only : nth, nk, nx, ny, nspec, nseal, nsea
+  use w3odatmd      , only : ndso, iaproc
   use wav_pio_mod   , only : pio_iotype, wav_pio_subsystem
   use wav_pio_mod   , only : handle_err, wav_pio_initdecomp
 #ifdef W3_PDLIB
@@ -77,6 +78,7 @@ contains
     pioid%fh = -1
     ierr = pio_createfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), pio_clobber)
     call handle_err(ierr, 'pio_create')
+    if (iaproc == 1) write(ndso,'(a)')' Writing restart file '//trim(fname)
 
     ierr = pio_def_dim(pioid,    'nx',    nx, xtid)
     ierr = pio_def_dim(pioid,    'ny',    ny, ytid)
@@ -227,18 +229,20 @@ contains
       ice     =  0.
       asf     =  1.
       fpis    =  sig(nk)
+      if (iaproc == 1) write(ndso,'(a)')' Initializing WW3 at rest '
       return
-    else
-      ! all times are restart times
-      tlev = time
-      tice = time
-      trho = time
-      tic1 = time
-      tic5 = time
-      frame = 1
-      ierr = pio_openfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), pio_nowrite)
-      call handle_err(ierr, 'open file '//trim(fname))
     end if
+
+    ! all times are restart times
+    tlev = time
+    tice = time
+    trho = time
+    tic1 = time
+    tic5 = time
+    frame = 1
+    ierr = pio_openfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), pio_nowrite)
+    call handle_err(ierr, 'open file '//trim(fname))
+    if (iaproc == 1) write(ndso,'(a)')' Reading restart file '//trim(fname)
 
     ! initialize the decomp
     call wav_pio_initdecomp(iodesc2dint, use_int=.true.)

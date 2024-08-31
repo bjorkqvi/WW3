@@ -2357,6 +2357,24 @@ CONTAINS
       !     Delay if data assimilation time.
       !
       !
+      if (use_historync) then
+        floutg = .false.
+        floutg2 = .false.
+        if (histwr) then
+          call w3cprt (imod)
+          call w3outg (va, flpfld, .true., .false. )
+          call write_history(tend)
+        end if
+      end if
+
+      if (use_restartnc) then
+        if (rstwr) then
+          call set_user_timestring(tend,user_timestring)
+          fname = trim(user_restfname)//trim(user_timestring)//'.nc'
+          call write_restart(trim(fname), va, mapsta+8*mapst2)
+        end if
+      end if
+
       IF ( TOFRST(1)  .EQ. -1 ) THEN
         DTTST  = 1.
       ELSE
@@ -2384,22 +2402,7 @@ CONTAINS
         !
         ! 4.b Processing and MPP preparations
         !
-        FLPART = .FALSE.
-        IF ( FLOUT(1) .AND. FLPFLD ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,1)).EQ.0.
-        IF ( FLOUT(6) ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,6)).EQ.0.
-        !
-#ifdef W3_T
-        WRITE (NDST,9042) LOCAL, FLPART, FLOUTG
-#endif
-        if (use_historync) then
-          floutg = .false.
-          floutg2 = .false.
-          if (histwr) then
-            if (flpart) call w3cprt (imod)
-            call w3outg (va, flpfld, .true., .false. )
-            call write_history(tend)
-          end if
-        else
+        if (.not. use_historync) then
           IF ( FLOUT(1) ) THEN
             FLOUTG = DSEC21(TIME,TONEXT(:,1)).EQ.0.
           ELSE
@@ -2412,19 +2415,20 @@ CONTAINS
             FLOUTG2 = .FALSE.
           END IF
           !
+          FLPART = .FALSE.
+          IF ( FLOUT(1) .AND. FLPFLD ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,1)).EQ.0.
+          IF ( FLOUT(6) ) FLPART = FLPART .OR. DSEC21(TIME,TONEXT(:,6)).EQ.0.
+          !
+#ifdef W3_T
+          WRITE (NDST,9042) LOCAL, FLPART, FLOUTG
+#endif
+          !
           IF ( LOCAL .AND. FLPART ) CALL W3CPRT ( IMOD )
           IF ( LOCAL .AND. (FLOUTG .OR. FLOUTG2) ) then
             CALL W3OUTG ( VA, FLPFLD, FLOUTG, FLOUTG2 )
           end if
-        end if ! if (use_historync) then
+        end if ! if (.not. use_historync) then
         !
-        if (use_restartnc) then
-          if (rstwr) then
-            call set_user_timestring(tend,user_timestring)
-            fname = trim(user_restfname)//trim(user_timestring)//'.nc'
-            call write_restart(trim(fname), va, mapsta+8*mapst2)
-          end if
-        end if
         !
 #ifdef W3_MPI
         FLGMPI = .FALSE.
