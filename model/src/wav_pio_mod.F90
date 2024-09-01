@@ -23,9 +23,9 @@ module wav_pio_mod
     module procedure wav_pio_initdecomp_3d
   end interface wav_pio_initdecomp
 
-  type(iosystem_desc_t) :: wav_pio_subsystem
-  integer               :: pio_iotype
-  integer               :: pio_ioformat
+  integer                        :: pio_iotype
+  integer                        :: pio_ioformat
+  type(iosystem_desc_t), pointer :: wav_pio_subsystem
 
   public :: wav_pio_init
   public :: pio_iotype
@@ -50,8 +50,9 @@ contains
   !> @author Denise.Worthen@noaa.gov
   !> @date 08-02-2024
   subroutine wav_pio_init(gcomp, mpi_comm, stdout, rc)
+
 #ifdef CESMCOUPLED
-   use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
+    use shr_pio_mod, only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #endif
     use ESMF         , only : ESMF_GridComp, ESMF_UtilStringUpperCase, ESMF_VM, ESMF_FAILURE
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_ERROR
@@ -70,13 +71,13 @@ contains
     integer           :: pio_stride
     integer           :: pio_rearranger
     integer           :: pio_root
+    integer           :: pio_debug_level
     character(len=CS) :: cvalue
     logical           :: isPresent, isSet
-    integer           :: my_task
-    integer           :: master_task
+    integer           :: my_task, master_task
     character(len=CS) :: subname='wav_pio_init'
     character(*), parameter :: u_FILE_u = &                  !< a character string for an ESMF log message
-       __FILE__
+         __FILE__
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -267,8 +268,29 @@ contains
       write(stdout,*) trim(subname), ' : pio_numiotasks = ', pio_numiotasks
     end if
 
+    allocate(wav_pio_subsystem)
     call pio_init(my_task, mpi_comm, pio_numiotasks, master_task, pio_stride, pio_rearranger, &
          wav_pio_subsystem, base=pio_root)
+
+    ! PIO debug related options
+    ! pio_debug_level
+    call NUOPC_CompAttributeGet(gcomp, name='pio_debug_level', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+      read(cvalue,*) pio_debug_level
+      if (pio_debug_level < 0 .or. pio_debug_level > 6) then
+        call ESMF_LogWrite(trim(subname)//': need to provide valid option for pio_debug_level (0-6)', ESMF_LOGMSG_ERROR)
+        rc = ESMF_FAILURE
+        return
+      end if
+    else
+      pio_debug_level = 0
+    end if
+    if (my_task == 0) write(stdout,*) trim(subname), ' : pio_debug_level = ', pio_debug_level
+
+    ! set PIO debug level
+    call pio_setdebuglevel(pio_debug_level)
+
     call pio_seterrorhandling(wav_pio_subsystem, PIO_RETURN_ERROR)
 #endif
   end subroutine wav_pio_init

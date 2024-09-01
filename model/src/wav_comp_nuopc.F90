@@ -732,6 +732,7 @@ contains
 
     if (use_restartnc .or. use_historync) then
       call wav_pio_init(gcomp, mpi_comm, stdout, rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     !--------------------------------------------------------------------
