@@ -25,9 +25,11 @@ module wav_pio_mod
 
   type(iosystem_desc_t) :: wav_pio_subsystem
   integer               :: pio_iotype
+  integer               :: pio_ioformat
 
   public :: wav_pio_init
   public :: pio_iotype
+  public :: pio_ioformat
   public :: wav_pio_subsystem
   public :: wav_pio_initdecomp
   public :: handle_err
@@ -64,7 +66,6 @@ contains
     integer            , intent(in)    :: stdout
     integer            , intent(out)   :: rc
 
-    integer           :: pio_ioformat
     integer           :: pio_numiotasks
     integer           :: pio_stride
     integer           :: pio_rearranger

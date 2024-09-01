@@ -10,7 +10,7 @@ module wav_restart_mod
   use w3adatmd      , only : nsealm
   use w3gdatmd      , only : nth, nk, nx, ny, nspec, nseal, nsea
   use w3odatmd      , only : ndso, iaproc
-  use wav_pio_mod   , only : pio_iotype, wav_pio_subsystem
+  use wav_pio_mod   , only : pio_iotype, pio_ioformat, wav_pio_subsystem
   use wav_pio_mod   , only : handle_err, wav_pio_initdecomp
 #ifdef W3_PDLIB
     use yowNodepool , only : ng
@@ -59,7 +59,7 @@ contains
     character(len=12)    :: vname
     integer              :: timid, xtid, ytid, ztid, ierr
     integer              :: ik, ith, ix, iy, kk, nseal_cpl
-    integer              :: isea, jsea
+    integer              :: isea, jsea, nmode
     integer              :: dimid(4)
     integer, allocatable :: locmap(:)
     real, allocatable    :: locva(:,:)
@@ -76,7 +76,12 @@ contains
     ! create the netcdf file
     frame = 1
     pioid%fh = -1
-    ierr = pio_createfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), pio_clobber)
+    nmode = pio_clobber
+    ! only applies to classic NETCDF files.
+    if (pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
+      nmode = ior(nmode,pio_ioformat)
+    endif
+    ierr = pio_createfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), nmode)
     call handle_err(ierr, 'pio_create')
     if (iaproc == 1) write(ndso,'(a)')' Writing restart file '//trim(fname)
 

@@ -13,7 +13,7 @@ module wav_history_mod
   use w3odatmd          , only : undef
   use w3adatmd          , only : mpi_comm_wave
   use wav_import_export , only : nseal_cpl
-  use wav_pio_mod       , only : pio_iotype, wav_pio_subsystem
+  use wav_pio_mod       , only : pio_iotype, pio_ioformat, wav_pio_subsystem
   use wav_pio_mod       , only : handle_err, wav_pio_initdecomp
   use pio
   use netcdf
@@ -108,7 +108,7 @@ contains
     character(len=12)   :: vname
     character(len=16)   :: user_timestring    !YYYY-MM-DD-SSSSS
 
-    integer :: n, xtid, ytid, xeid, ztid, stid, mtid, ptid, ktid, timid
+    integer :: n, xtid, ytid, xeid, ztid, stid, mtid, ptid, ktid, timid, nmode
     integer :: len_s, len_m, len_p, len_k
     logical :: s_axis = .false., m_axis = .false., p_axis = .false., k_axis = .false.
 
@@ -127,7 +127,12 @@ contains
     end if
 
     pioid%fh = -1
-    ierr = pio_createfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), pio_clobber)
+    nmode = pio_noclobber
+    ! only applies to classic NETCDF files.
+    if (pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
+      nmode = ior(nmode,pio_ioformat)
+    endif
+    ierr = pio_createfile(wav_pio_subsystem, pioid, pio_iotype, trim(fname), nmode)
     call handle_err(ierr, 'pio_create')
 
     len_s = noswll + 1                  ! 0:noswll
