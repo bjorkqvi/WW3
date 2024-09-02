@@ -443,6 +443,7 @@ contains
     type(ESMF_TimeInterval)        :: TimeOffset
     type(ESMF_TimeInterval)        :: TimeStep
     type(ESMF_Calendar)            :: calendar
+    type(ESMF_Info)                :: info
     character(CL)                  :: cvalue
     integer                        :: shrlogunit
     integer                        :: yy,mm,dd,hh,ss
@@ -464,7 +465,7 @@ contains
     integer(i4)                    :: maskmin
     integer(i4), pointer           :: meshmask(:)
     character(23)                  :: dtme21
-    integer                        :: iam, mpi_comm
+    integer                        :: iam, mpi_comm, num_threads
     character(ESMF_MAXSTR)         :: msgString
     character(ESMF_MAXSTR)         :: diro
     character(CL)                  :: logfile
@@ -511,6 +512,12 @@ contains
 
     call ESMF_VMGet(vm, mpiCommunicator=mpi_comm, peCount=petcount, localPet=iam, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_InfoGetFromHost(gcomp, info=info, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_InfoGet(info, key="/NUOPC/Hint/PePerPet/MaxCount", value=num_threads, default=1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
 #ifndef W3_CESMCOUPLED
     nmproc = petcount
 #else
@@ -731,7 +738,7 @@ contains
     end if
 
     if (use_restartnc .or. use_historync) then
-      call wav_pio_init(gcomp, mpi_comm, stdout, rc)
+      call wav_pio_init(gcomp, mpi_comm, stdout, naproc/num_threads, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 

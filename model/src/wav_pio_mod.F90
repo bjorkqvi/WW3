@@ -45,11 +45,12 @@ contains
   !! @param       gcomp             an ESMF_GridComp object
   !! @param       mpi_comm          the MPI communicator
   !! @param[in]   stdout            the logfile on the root_task
+  !! @param[in]   numprocs          naproc/nthrds
   !! @param[out]  rc                a return code
   !!
   !> @author Denise.Worthen@noaa.gov
   !> @date 08-02-2024
-  subroutine wav_pio_init(gcomp, mpi_comm, stdout, rc)
+  subroutine wav_pio_init(gcomp, mpi_comm, stdout, numprocs, rc)
 
 #ifdef CESMCOUPLED
     use shr_pio_mod, only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
@@ -58,13 +59,14 @@ contains
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_ERROR
     use NUOPC        , only : NUOPC_CompAttributeGet
     use wav_kind_mod , only : CL=>SHR_KIND_CL, CS=>SHR_KIND_CS
-    use w3odatmd     , only : naproc, iaproc
+    use w3odatmd     , only : iaproc
     use wav_shr_mod  , only : chkerr
 
     ! input/output arguments
     type(ESMF_GridComp), intent(in)    :: gcomp
     integer            , intent(in)    :: mpi_comm
     integer            , intent(in)    :: stdout
+    integer            , intent(in)    :: numprocs
     integer            , intent(out)   :: rc
 
     integer           :: pio_numiotasks
@@ -158,7 +160,7 @@ contains
        if (pio_root < 0) then
           pio_root = 1
        endif
-       pio_root = min(pio_root, naproc-1)
+       pio_root = min(pio_root, numprocs-1)
     else
        pio_root = 1
     end if
@@ -187,10 +189,10 @@ contains
     if (my_task == 0) write(stdout,*) trim(subname), ' : pio_numiotasks = ', pio_numiotasks
 
     ! check for parallel IO, it requires at least two io pes
-    if (naproc > 1 .and. pio_numiotasks == 1 .and. &
+    if (numprocs > 1 .and. pio_numiotasks == 1 .and. &
        (pio_iotype .eq. PIO_IOTYPE_PNETCDF .or. pio_iotype .eq. PIO_IOTYPE_NETCDF4P)) then
        pio_numiotasks = 2
-       pio_stride = min(pio_stride, naproc/2)
+       pio_stride = min(pio_stride, numprocs/2)
        if (my_task == 0) then
           write(stdout,*) ' parallel io requires at least two io pes - following parameters are updated:'
           write(stdout,*) trim(subname), ' : pio_stride = ', pio_stride
@@ -200,14 +202,14 @@ contains
 
     ! check/set/correct io pio parameters
     if (pio_stride > 0 .and. pio_numiotasks < 0) then
-       pio_numiotasks = max(1, naproc/pio_stride)
+       pio_numiotasks = max(1, numprocs/pio_stride)
        if (my_task == 0) write(stdout,*) trim(subname), ' : update pio_numiotasks = ', pio_numiotasks
     else if(pio_numiotasks > 0 .and. pio_stride < 0) then
-       pio_stride = max(1, naproc/pio_numiotasks)
+       pio_stride = max(1, numprocs/pio_numiotasks)
        if (my_task == 0) write(stdout,*) trim(subname), ' : update pio_stride = ', pio_stride
     else if(pio_numiotasks < 0 .and. pio_stride < 0) then
-       pio_stride = max(1,naproc/4)
-       pio_numiotasks = max(1,naproc/pio_stride)
+       pio_stride = max(1,numprocs/4)
+       pio_numiotasks = max(1,numprocs/pio_stride)
        if (my_task == 0) write(stdout,*) trim(subname), ' : update pio_numiotasks = ', pio_numiotasks
        if (my_task == 0) write(stdout,*) trim(subname), ' : update pio_stride = ', pio_stride
     end if
@@ -215,20 +217,20 @@ contains
        pio_root = 0
     endif
 
-    if (pio_root + (pio_stride)*(pio_numiotasks-1) >= naproc .or. &
-       pio_stride <= 0 .or. pio_numiotasks <= 0 .or. pio_root < 0 .or. pio_root > naproc-1) then
-       if (naproc < 100) then
-          pio_stride = max(1, naproc/4)
-       else if(naproc < 1000) then
-          pio_stride = max(1, naproc/8)
+    if (pio_root + (pio_stride)*(pio_numiotasks-1) >= numprocs .or. &
+       pio_stride <= 0 .or. pio_numiotasks <= 0 .or. pio_root < 0 .or. pio_root > numprocs-1) then
+       if (numprocs < 100) then
+          pio_stride = max(1, numprocs/4)
+       else if(numprocs < 1000) then
+          pio_stride = max(1, numprocs/8)
        else
-          pio_stride = max(1, naproc/16)
+          pio_stride = max(1, numprocs/16)
        end if
        if(pio_stride > 1) then
-          pio_numiotasks = naproc/pio_stride
-          pio_root = min(1, naproc-1)
+          pio_numiotasks = numprocs/pio_stride
+          pio_root = min(1, numprocs-1)
        else
-          pio_numiotasks = naproc
+          pio_numiotasks = numprocs
           pio_root = 0
        end if
        if (my_task == 0) then
