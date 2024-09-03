@@ -2625,13 +2625,8 @@ CONTAINS
                   !   Gets the necessary spectral data
                   !
                   CALL W3IOPE ( VA )
-#ifdef W3_BIN2NC
-                  CALL W3IOPON ( 'WRITE', NDS(8), ITEST, IMOD )
-#else
-                  CALL W3IOPO ( 'WRITE', NDS(8), ITEST, IMOD &
-                          )
-#endif
-                  END IF
+                  CALL W3IOPO ( 'WRITE', NDS(8), ITEST, IMOD )
+                END IF
                 !
               ELSE IF ( J .EQ. 3 ) THEN
                 !
