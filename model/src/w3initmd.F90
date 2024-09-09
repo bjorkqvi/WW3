@@ -686,12 +686,12 @@ CONTAINS
       IF ( OUTPTS(IMOD)%IAPROC .EQ. OUTPTS(IMOD)%NAPLOG )             &
            OPEN (MDS(1),FILE=FNMPRE(:J)//LFILE(:IFL),ERR=888,IOSTAT=IERR)
       !
+      IF ( MDS(3).NE.MDS(1) .AND. MDS(3).NE.MDS(4) .AND. TSTOUT ) THEN
+        INQUIRE (MDS(3),OPENED=OPENED)
+        IF ( .NOT. OPENED ) OPEN (MDS(3),FILE=FNMPRE(:J)//TFILE(:IFT), ERR=889, &
+             IOSTAT=IERR)
+      END IF
     end if ! if (.not. logfile_is_assigned)
-    IF ( MDS(3).NE.MDS(1) .AND. MDS(3).NE.MDS(4) .AND. TSTOUT ) THEN
-      INQUIRE (MDS(3),OPENED=OPENED)
-      IF ( .NOT. OPENED ) OPEN (MDS(3),FILE=FNMPRE(:J)//TFILE(:IFT), ERR=889, &
-           IOSTAT=IERR)
-    END IF
     !
     ! 1.d Dataset unit numbers
     !
@@ -731,6 +731,7 @@ CONTAINS
     ! 2.a Read model definition file
     !
     CALL W3IOGR ( 'READ', NDS(5), IMOD, FEXT )
+
     IF (GTYPE .eq. UNGTYPE) THEN
       CALL SPATIAL_GRID
       CALL NVECTRI
@@ -971,14 +972,14 @@ CONTAINS
           if (restart_from_binary) then
             call w3iors('READ', nds(6), sig(nk), imod, filename=trim(fname))
           else
-            call read_restart(trim(fname), va, mapsta)
+            call read_restart(trim(fname), va=va, mapsta=mapsta, mapst2=mapst2)
           end if
         else
           call extcde (60, msg="required restart file " // trim(fname) // " does not exist")
         end if
       else
-        call read_restart('none', va, mapsta)
-        mapsta = maptst
+        call read_restart('none')
+        ! mapst2 is module variable defined in read of mod_def; maptst is from 2.b above
         flcold = .true.
       end if
     else
@@ -1293,7 +1294,6 @@ CONTAINS
     !
     MAPTST = MOD(MAPST2/2,2)
     MAPST2 = MAPST2 - 2*MAPTST
-
     !
     !Li   For multi-resolution SMC grid, these 1-NX and 1-NY nested loops
     !Li   may miss the refined cells as they are not 1-1 corresponding to
@@ -1367,12 +1367,10 @@ CONTAINS
       CALL SET_IOBDP_PDLIB
     ENDIF
 #endif
-
     !
 #ifdef W3_DEBUGCOH
     CALL ALL_VA_INTEGRAL_PRINT(IMOD, "W3INIT, step 8.2", 1)
 #endif
-
     !
     MAPST2 = MAPST2 + 2*MAPTST
     !
@@ -1426,7 +1424,6 @@ CONTAINS
         !
       END DO
     END DO
-
     !
     ! 6.  Initialize arrays ---------------------------------------------- /
     !     Some initialized in W3IORS
