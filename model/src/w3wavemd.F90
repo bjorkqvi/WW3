@@ -503,7 +503,7 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     !/ Parameter list
     !/
-    INTEGER, INTENT(IN)           :: IMOD, TEND(2),ODAT(35)
+    INTEGER, INTENT(IN)           :: IMOD, TEND(2),ODAT(40)
     LOGICAL, INTENT(IN), OPTIONAL :: STAMP, NO_OUT
 #ifdef W3_OASIS
     INTEGER, INTENT(IN), OPTIONAL :: ID_LCOMM
@@ -2300,10 +2300,6 @@ CONTAINS
         END DO
         IF (IT.GT.0) DTG=DTGTEMP
 #endif
-
-
-
-
         !
         !
         ! 3.8 Update global time step.
@@ -2336,7 +2332,7 @@ CONTAINS
 #endif
         !
         !
-      END DO
+      END DO ! DO IT = IT0, NT
 
 #ifdef W3_TIMINGS
       CALL PRINT_MY_TIME("W3WAVE, step 6.21.1")
@@ -2357,21 +2353,23 @@ CONTAINS
       !     Delay if data assimilation time.
       !
       !
-      if (use_historync) then
-        floutg = .false.
-        floutg2 = .false.
-        if (histwr) then
-          call w3cprt (imod)
-          call w3outg (va, flpfld, .true., .false. )
-          call write_history(tend)
+      if (dsec21(time,tend) == 0.0) then    ! req'd in case waves are running in slow loop
+        if (use_historync) then
+          floutg = .false.
+          floutg2 = .false.
+          if (histwr) then
+            call w3cprt (imod)
+            call w3outg (va, flpfld, .true., .false. )
+            call write_history(tend)
+          end if
         end if
-      end if
 
-      if (use_restartnc) then
-        if (rstwr) then
-          call set_user_timestring(tend,user_timestring)
-          fname = trim(user_restfname)//trim(user_timestring)//'.nc'
-          call write_restart(trim(fname), va, mapsta+8*mapst2)
+        if (use_restartnc) then
+          if (rstwr) then
+            call set_user_timestring(tend,user_timestring)
+            fname = trim(user_restfname)//trim(user_timestring)//'.nc'
+            call write_restart(trim(fname), va, mapsta+8*mapst2)
+          end if
         end if
       end if
 
