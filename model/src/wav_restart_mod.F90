@@ -202,7 +202,7 @@ contains
     real   , allocatable :: lva(:,:)
     integer, allocatable :: lmap(:)
     integer, allocatable :: lmap2d(:,:)
-    integer, allocatable :: oldst2(:,:)
+    integer, allocatable :: st2init(:,:)
     !-------------------------------------------------------------------------------
 
     ! cold start, set initial values and return.
@@ -234,13 +234,13 @@ contains
 #endif
     allocate(lva(1:nseal_cpl,1:nspec))
     allocate(lmap2d(1:ny,1:nx))
-    allocate(oldst2(1:ny,1:nx))
+    allocate(st2init(1:ny,1:nx))
     allocate(lmap(1:nseal_cpl))
     lva(:,:) = 0.0
     lmap2d(:,:) = 0
     lmap(:) = 0
-    ! save a copy of mapst2 from mod_def
-    oldst2 = mapst2
+    ! save a copy of initial mapst2 from mod_def
+    st2init = mapst2
 
     ! all times are restart times
     tlev = time
@@ -311,7 +311,7 @@ contains
     end do
 
     mapsta = mod(lmap2d+2,8) - 2
-    mapst2 = oldst2 + (lmap2d-mapsta)/8
+    mapst2 = st2init + (lmap2d-mapsta)/8
 
     call pio_syncfile(pioid)
     call pio_freedecomp(pioid, iodesc2dint)
