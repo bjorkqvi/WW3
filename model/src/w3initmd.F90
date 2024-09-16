@@ -1440,7 +1440,7 @@ CONTAINS
     !
     ! 7.  Write info to log file ----------------------------------------- /
     !
-    IF ( IAPROC .EQ. NAPLOG ) THEN
+    IF ( IAPROC .EQ. NAPLOG) THEN
       !
       WRITE (NDSO,970) GNAME
       IF (   FLLEV    ) WRITE (NDSO,971) 'Prescribed'
@@ -1527,7 +1527,9 @@ CONTAINS
         WRITE (NDSO,990) DTME21
       END IF
       !
-      WRITE (NDSO,984)
+      if (.not. logfile_is_assigned) then
+        WRITE (NDSO,984)
+      end if
       !
     END IF
     !

@@ -44,7 +44,7 @@ module wav_comp_nuopc
   use wav_shr_mod           , only : wav_coupling_to_cice, nwav_elev_spectrum
   use wav_shr_mod           , only : merge_import, dbug_flag
   use w3odatmd              , only : nds, iaproc, napout
-  use w3odatmd              , only : runtype, user_histfname, user_restfname
+  use w3odatmd              , only : runtype, user_histfname, user_restfname, verboselog
   use w3odatmd              , only : use_historync, use_restartnc, restart_from_binary, logfile_is_assigned
   use w3odatmd              , only : time_origin, calendar_name, elapsed_secs
   use wav_shr_mod           , only : casename, multigrid, inst_suffix, inst_index, unstr_mesh
@@ -375,6 +375,14 @@ contains
     if (runtimelog) then
       call ufs_file_setLogUnit('./log.ww3.timer',nu_timer,runtimelog)
     end if
+
+    ! Determine verbose native WW3 logging
+    call NUOPC_CompAttributeGet(gcomp, name="verboselog", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) verboselog=(trim(cvalue)=="true")
+    write(logmsg,*) verboselog
+    call ESMF_LogWrite('WW3_cap: Verbose WW3 native logging is = '//trim(logmsg), ESMF_LOGMSG_INFO)
+
     call advertise_fields(importState, exportState, flds_scalar_name, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -422,7 +430,7 @@ contains
     use wav_shel_inp    , only : set_shel_io
     use wav_history_mod , only : wav_history_init
     use wav_pio_mod     , only : wav_pio_init
-    use wav_shr_mod     , only : diagnose_mesh, write_meshdecomp
+    use wav_shr_mod     , only : diagnose_mesh, write_meshdecomp, wav_loginit
 #ifdef W3_PDLIB
     use yowNodepool     , only : ng
 #endif
@@ -955,12 +963,23 @@ contains
     end if
 #endif
     !--------------------------------------------------------------------
-    ! Intialize the list of requested output variables for netCDF output
+    ! Intialize the list of requested output variables for netCDF output.
+    ! This needs to occur after mod_def has been read in w3init since
+    ! some variables are available only if they are defined in the mod_def
     !--------------------------------------------------------------------
 
     if (use_historync) then
       call wav_history_init(stdout)
     end if
+
+    !--------------------------------------------------------------------
+    ! Write the header string for WW3 native logging
+    !--------------------------------------------------------------------
+
+    if (root_task) then
+      if (verboselog) call wav_loginit(stdout)
+    end if
+
     if (root_task) call ufs_logtimer(nu_timer,time,start_tod,'InitializeRealize time: ',runtimelog,wtime)
 
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
@@ -1136,8 +1155,8 @@ contains
     ss = tod - (hh*3600) - (mm*60)
     time0(1) = ymd
     time0(2) = hh*10000 + mm*100 + ss
-    if ( root_task ) then
-      if (dbug_flag > 5)write(nds(1),'(a,3i4,i10)') 'ymd2date currTime wav_comp_nuopc hh,mm,ss,ymd', hh,mm,ss,ymd
+    if (dbug_flag  > 5) then
+       if ( root_task ) write(nds(1),'(a,3i4,i10)') 'ymd2date currTime wav_comp_nuopc hh,mm,ss,ymd', hh,mm,ss,ymd
     end if
     if (root_task) call ufs_logtimer(nu_timer,time,tod,'ModelAdvance time since last step: ',runtimelog,wtime)
     call ufs_settimer(wtime)
