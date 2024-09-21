@@ -225,6 +225,7 @@ contains
     use mpi_f08
     use w3adatmd    , only : mpi_comm_wave
     use w3gdatmd    , only : sig
+    use w3idatmd    , only : icei
     use w3wdatmd    , only : time, tlev, tice, trho, tic1, tic5, wlv, asf, fpis
 
     character(len=*)  , intent(in)    :: fname
@@ -381,7 +382,11 @@ contains
           ! fill global array on each PE
           ! TODO : make generic routine (in=global_ouput, out=ice)
           ice = 0.0
+          icei = 0.0
           do isea = 1,nsea
+            ix = mapsf(isea,1)
+            iy = mapsf(isea,2)
+            icei(ix,iy) = global_output(isea)
             ice(isea) = global_output(isea)
           end do
         end if
