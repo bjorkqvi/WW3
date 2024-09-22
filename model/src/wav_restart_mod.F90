@@ -36,7 +36,7 @@ module wav_restart_mod
 
   ! used/reused in module
   character(len=12) :: vname
-  integer           :: ik, ith, ix, iy, kk, nseal_cpl, isea, jsea, ierr, i
+  integer           :: ik, ith, ix, iy, kk, isea, jsea, ierr, i
 
   !===============================================================================
 contains
@@ -62,11 +62,10 @@ contains
 
     ! local variables
     integer              :: timid, xtid, ytid, ztid
-    integer              :: nmode
+    integer              :: nseal_cpl, nmode
     integer              :: dimid(4)
     real   , allocatable :: lva(:,:)
     integer, allocatable :: lmap(:)
-    real   , allocatable :: lvar(:)
     !-------------------------------------------------------------------------------
 
 #ifdef W3_PDLIB
@@ -74,9 +73,10 @@ contains
 #else
     nseal_cpl = nseal
 #endif
-    allocate(lmap(1:nseal_cpl))
     allocate(lva(1:nseal_cpl,1:nspec))
-    allocate(lvar(1:nseal_cpl))
+    allocate(lmap(1:nseal_cpl))
+    lva(:,:) = 0.0
+    lmap(:) = 0
 
     ! create the netcdf file
     frame = 1
@@ -142,7 +142,6 @@ contains
     call handle_err(ierr, 'put time')
 
     ! mapsta is global
-    lmap(:) = 0
     do jsea = 1,nseal_cpl
       call init_get_isea(isea, jsea)
       ix = mapsf(isea,1)
@@ -159,7 +158,6 @@ contains
     call handle_err(ierr, 'put variable '//trim(vname))
 
     ! write va
-    lva(:,:) = 0.0
     do jsea = 1,nseal_cpl
       kk = 0
       do ik = 1,nk
@@ -177,25 +175,11 @@ contains
     call pio_write_darray(pioid, varid, iodesc3dk, lva, ierr)
     call handle_err(ierr, 'put variable '//trim(vname))
 
-    ! write requested additional fields
+    ! write requested additional global(nsea) fields
     if (addrstflds) then
       do i = 1,rstfldcnt
         vname = trim(rstfldlist(i))
-        ! TODO: make generic routine (in=ice, out=lvar)
-        if (vname == 'ice') then
-          lvar(:) = 0.0
-          do jsea = 1,nseal_cpl
-            call init_get_isea(isea, jsea)
-            lvar(jsea) = ice(isea)
-          end do
-        end if
-
-        ! write PE local field
-        ierr = pio_inq_varid(pioid,  trim(vname), varid)
-        call handle_err(ierr, 'inquire variable '//trim(vname))
-        call pio_setframe(pioid, varid, int(1,kind=Pio_Offset_Kind))
-        call pio_write_darray(pioid, varid, iodesc2d, lvar, ierr)
-        call handle_err(ierr, 'put variable '//trim(vname))
+        if (vname == 'ice')call write_globalfield(vname, nseal_cpl, ice)
       end do
     end if
 
@@ -235,11 +219,11 @@ contains
 
     ! local variables
     type(MPI_Comm)       :: wave_communicator  ! needed for mpi_f08
-    real                 :: global_input(nsea), global_output(nsea)
+    integer              :: global_input(nsea), global_output(nsea)
+    integer              :: nseal_cpl
     integer              :: ifill
     real                 :: rfill
     real   , allocatable :: lva(:,:)
-    real   , allocatable :: lvar(:)
     integer, allocatable :: lmap(:)
     integer, allocatable :: lmap2d(:,:)
     integer, allocatable :: st2init(:,:)
@@ -273,14 +257,13 @@ contains
     nseal_cpl = nseal
 #endif
     allocate(lva(1:nseal_cpl,1:nspec))
-    allocate(lvar(1:nseal_cpl))
+    allocate(lmap(1:nseal_cpl))
     allocate(lmap2d(1:ny,1:nx))
     allocate(st2init(1:ny,1:nx))
-    allocate(lmap(1:nseal_cpl))
     lva(:,:) = 0.0
-    lvar(:) = 0.0
-    lmap2d(:,:) = 0
     lmap(:) = 0
+    lmap2d(:,:) = 0
+
     ! save a copy of initial mapst2 from mod_def
     st2init = mapst2
 
@@ -332,64 +315,32 @@ contains
     call handle_err(ierr, 'get variable _FillValue'//trim(vname))
 
     ! fill global array with PE local values
-    global_input = 0.0
-    global_output = 0.0
+    global_input = 0
+    global_output = 0
     do jsea = 1,nseal_cpl
       call init_get_isea(isea, jsea)
       if (lmap(jsea) .ne. ifill) then
-        global_input(isea) = real(lmap(jsea))
+        global_input(isea) = lmap(jsea)
       end if
     end do
     ! reduce across all PEs to create global array
-    call MPI_AllReduce(global_input, global_output, nsea, MPI_REAL, MPI_SUM, wave_communicator, ierr)
+    call MPI_AllReduce(global_input, global_output, nsea, MPI_INTEGER, MPI_SUM, wave_communicator, ierr)
 
     ! fill global array on each PE
-    lmap2d = 0
     do isea = 1,nsea
       ix = mapsf(isea,1)
       iy = mapsf(isea,2)
-      lmap2d(iy,ix) = int(global_output(isea))
+      lmap2d(iy,ix) = global_output(isea)
     end do
 
     mapsta = mod(lmap2d+2,8) - 2
     mapst2 = st2init + (lmap2d-mapsta)/8
 
-    ! read additional restart fields
+    ! read additional global(nsea) restart fields
     if (addrstflds) then
       do i = 1,rstfldcnt
         vname = trim(rstfldlist(i))
-        ierr = pio_inq_varid(pioid, trim(vname), varid)
-        call handle_err(ierr, 'inquire variable '//trim(vname))
-        call pio_setframe(pioid, varid, frame)
-        call pio_read_darray(pioid, varid, iodesc2d, lvar, ierr)
-        call handle_err(ierr, 'get variable '//trim(vname))
-        ierr = pio_get_att(pioid, varid, "_FillValue", rfill)
-        call handle_err(ierr, 'get variable _FillValue'//trim(vname))
-
-        ! fill global array with PE local values
-        global_input = 0.0
-        global_output = 0.0
-        do jsea = 1,nseal_cpl
-          call init_get_isea(isea, jsea)
-          if (lvar(jsea) .ne. rfill) then
-            global_input(isea) = lvar(jsea)
-          end if
-        end do
-        ! reduce across all PEs to create global array
-        call MPI_AllReduce(global_input, global_output, nsea, MPI_REAL, MPI_SUM, wave_communicator, ierr)
-
-        if (vname == 'ice') then
-          ! fill global array on each PE
-          ! TODO : make generic routine (in=global_ouput, out=ice)
-          ice = 0.0
-          icei = 0.0
-          do isea = 1,nsea
-            ix = mapsf(isea,1)
-            iy = mapsf(isea,2)
-            icei(ix,iy) = global_output(isea)
-            ice(isea) = global_output(isea)
-          end do
-        end if
+        if (vname == 'ice')call read_globalfield(wave_communicator, vname, nseal_cpl, ice, icei)
       end do
     end if
 
@@ -400,4 +351,98 @@ contains
     call pio_closefile(pioid)
 
   end subroutine read_restart
+
+  !===============================================================================
+  !>  Write a decomposed array of (nsea) global values
+  !!
+  !! @param[in]   vname         the variable name
+  !! @param[in]   nseal_cpl     the PE local dimension, disregarding halos
+  !! @param[in]   global_input  the global array
+  !!
+  !> author DeniseWorthen@noaa.gov
+  !> @date 09-22-2024
+  subroutine write_globalfield(vname, nseal_cpl, global_input)
+
+    character(len=*) , intent(in)    :: vname
+    integer          , intent(in)    :: nseal_cpl
+    real             , intent(in)    :: global_input(nsea)
+
+    ! local variable
+    real, allocatable :: lvar(:)
+
+    allocate(lvar(1:nseal_cpl))
+
+    lvar(:) = 0.0
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      lvar(jsea) = global_input(isea)
+    end do
+
+    !write PE local field
+    ierr = pio_inq_varid(pioid,  trim(vname), varid)
+    call handle_err(ierr, 'inquire variable '//trim(vname))
+    call pio_setframe(pioid, varid, int(1,kind=Pio_Offset_Kind))
+    call pio_write_darray(pioid, varid, iodesc2d, lvar, ierr)
+    call handle_err(ierr, 'put variable '//trim(vname))
+
+  end subroutine write_globalfield
+
+  !===============================================================================
+  !>  Read a decomposed array of (nsea) global values and return a global field on
+  !! each DE
+  !!
+  !! @param[in]    wave_communicator  the MPI handle
+  !! @param[in]    vname              the variable name
+  !! @param[in]    nseal_cpl          the PE local dimension, disregarding halos
+  !! @param[out]   global_output      the global array, nsea points on each DE
+  !! @param[out]   global_2d          the global array, (nx,ny) points on each DE
+  !!
+  !> author DeniseWorthen@noaa.gov
+  !> @date 09-22-2024
+  subroutine read_globalfield(wave_communicator, vname, nseal_cpl, global_output, global_2d)
+
+    use mpi_f08
+
+    type(MPI_Comm)   , intent(in)    :: wave_communicator  ! needed for mpi_f08
+    character(len=*) , intent(in)    :: vname
+    integer          , intent(in)    :: nseal_cpl
+    real             , intent(out)   :: global_output(nsea)
+    real             , intent(out)   :: global_2d(nx,ny)
+
+    ! local variables
+    real              :: global_input(nsea)
+    real              :: rfill
+    real, allocatable :: lvar(:)
+
+    allocate(lvar(1:nseal_cpl))
+    lvar(:) = 0.0
+
+    ierr = pio_inq_varid(pioid, trim(vname), varid)
+    call handle_err(ierr, 'inquire variable '//trim(vname))
+    call pio_setframe(pioid, varid, frame)
+    call pio_read_darray(pioid, varid, iodesc2d, lvar, ierr)
+    call handle_err(ierr, 'get variable '//trim(vname))
+    ierr = pio_get_att(pioid, varid, "_FillValue", rfill)
+    call handle_err(ierr, 'get variable _FillValue'//trim(vname))
+
+    ! fill global array with PE local values
+    global_input = 0.0
+    global_output = 0.0
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      if (lvar(jsea) .ne. rfill) then
+        global_input(isea) = lvar(jsea)
+      end if
+    end do
+    ! reduce across all PEs to create global array
+    call MPI_AllReduce(global_input, global_output, nsea, MPI_REAL, MPI_SUM, wave_communicator, ierr)
+
+    global_2d = 0.0
+    do isea = 1,nsea
+      ix = mapsf(isea,1)
+      iy = mapsf(isea,2)
+      global_2d(ix,iy) = global_output(isea)
+    end do
+
+  end subroutine read_globalfield
 end module wav_restart_mod
