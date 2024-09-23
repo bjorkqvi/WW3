@@ -179,7 +179,7 @@ contains
     if (addrstflds) then
       do i = 1,rstfldcnt
         vname = trim(rstfldlist(i))
-        if (vname == 'ice')call write_globalfield(vname, nseal_cpl, ice)
+        if (vname == 'ice')call write_globalfield(vname, nseal_cpl, ice(1:nsea))
       end do
     end if
 
@@ -340,7 +340,7 @@ contains
     if (addrstflds) then
       do i = 1,rstfldcnt
         vname = trim(rstfldlist(i))
-        if (vname == 'ice')call read_globalfield(wave_communicator, vname, nseal_cpl, ice, icei)
+        if (vname == 'ice')call read_globalfield(wave_communicator, vname, nseal_cpl, ice(1:nsea), icei)
       end do
     end if
 
@@ -365,7 +365,7 @@ contains
 
     character(len=*) , intent(in)    :: vname
     integer          , intent(in)    :: nseal_cpl
-    real             , intent(in)    :: global_input(nsea)
+    real             , intent(in)    :: global_input(:)
 
     ! local variable
     real, allocatable :: lvar(:)
@@ -406,8 +406,8 @@ contains
     type(MPI_Comm)   , intent(in)    :: wave_communicator  ! needed for mpi_f08
     character(len=*) , intent(in)    :: vname
     integer          , intent(in)    :: nseal_cpl
-    real             , intent(out)   :: global_output(nsea)
-    real             , intent(out)   :: global_2d(nx,ny)
+    real             , intent(out)   :: global_output(:)
+    real             , intent(out)   :: global_2d(:,:)
 
     ! local variables
     real              :: global_input(nsea)
