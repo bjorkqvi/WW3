@@ -841,6 +841,7 @@ MODULE W3GRIDMD
 #endif
   !
 #ifdef W3_ST4
+  INTEGER                 :: SINTABLE
   INTEGER                 :: SWELLFPAR, SDSISO, SDSBRFDF, TAUWBUG
   REAL                    :: SDSBCHOICE
   REAL                    :: ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP,&

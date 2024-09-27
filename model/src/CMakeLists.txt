@@ -65,6 +65,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/src_list.cmake)
 
 list(APPEND ftn_src ${nuopc_mesh_cap_src})
 
+list(APPEND ftn_src ${SRCROOT}/share/src/shr_pio_mod.F90)
+
 # Handle PDLIB, SCRIP, SCRIPNC build files directly instead of through configuration file
 if("PDLIB" IN_LIST switches)
   list(APPEND ftn_src ${pdlib_src})
