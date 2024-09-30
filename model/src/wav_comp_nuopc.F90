@@ -47,7 +47,7 @@ module wav_comp_nuopc
   use w3odatmd              , only : runtype, user_histfname, user_restfname, verboselog
   use w3odatmd              , only : use_historync, use_restartnc, restart_from_binary, logfile_is_assigned
   use w3odatmd              , only : time_origin, calendar_name, elapsed_secs
-  use wav_shr_mod           , only : casename, multigrid, inst_suffix, inst_index, unstr_mesh
+  use wav_shr_mod           , only : casename, multigrid, inst_suffix, inst_index, inst_name, unstr_mesh
   use wav_wrapper_mod       , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit, wtime
 #ifndef W3_CESMCOUPLED
   use wmwavemd              , only : wmwave
@@ -346,6 +346,7 @@ contains
       inst_suffix = ""
       inst_index=1
     endif
+    inst_name = "WAV"//trim(inst_suffix)
 
     ! Get Multigrid setting
     multigrid = .false.
@@ -1542,7 +1543,6 @@ contains
     rc = ESMF_SUCCESS
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
 
-    inst_name = "WAV"//trim(inst_suffix)
     ! Read namelist (set initfile in w3odatmd)
     if ( root_task ) then
       open (newunit=unitn, file='wav_in'//trim(inst_suffix), status='old')
