@@ -178,6 +178,7 @@ contains
      !call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lasl' )
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes')
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hstokes')
     else
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_z0')
     end if
@@ -653,7 +654,7 @@ contains
 #ifdef W3_CESMCOUPLED
     real(R8)          :: fillvalue = 1.0e30_R8                 ! special missing value
     real              :: sww, langmt, lasl, alphal
-    real(R8), allocatable :: laslpj(:)
+    real(r8)          :: laslpj
 #else
     real(R8)          :: fillvalue = zero                      ! special missing value
 #endif
@@ -722,29 +723,6 @@ contains
       call wmsetm ( 1, mdse, mdst )
     end if
 #else
-    if (state_fldchk(exportState, 'Sw_lamult') .or. state_fldchk(exportState, 'Sw_hstokes')) then
-      allocate(laslpj(nseal_cpl))
-      laslpj(:) = 0._r8
-      do jsea=1, nseal_cpl
-        call init_get_isea(isea, jsea)
-        ix  = mapsf(isea,1)
-        iy  = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1 .and. HS(jsea) > zero .and. &
-            sqrt(USSX(jsea)**2+USSY(jsea)**2)>zero .and. sqrt(USSHX(jsea)**2+USSHY(jsea)**2)>zero ) then
-           sww = atan2(USSHY(jsea),USSHX(jsea)) - UD(isea)
-           alphal = atan( sin(sww) / (                                       &
-                          2.5 * UST(isea)*ASF(isea)*sqrt(dair/dwat)          &
-                        / max(1.e-14_r8, sqrt(USSX(jsea)**2+USSY(jsea)**2))     &
-                        * log(max(1.0, abs(1.25*HSL(ix,iy)/HS(jsea))))       &
-                        + cos(sww)   )                                       &
-                        )
-           lasl = sqrt(ust(isea) * asf(isea) * sqrt(dair/dwat) &
-                                 / sqrt(usshx(jsea)**2 + usshy(jsea)**2 ))
-           laslpj(jsea) = lasl * sqrt(abs(cos(alphal)) &
-               / abs(cos(sww-alphal)))
-        end if
-     enddo
-    end if
     if (state_fldchk(exportState, 'Sw_lamult')) then
       call state_getfldptr(exportState, 'Sw_lamult', sw_lamult, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -754,9 +732,20 @@ contains
         ix  = mapsf(isea,1)
         iy  = mapsf(isea,2)
         if (mapsta(iy,ix) == 1 .and. HS(jsea) > zero .and. &
-             sqrt(USSX(jsea)**2+USSY(jsea)**2)>zero .and. sqrt(USSHX(jsea)**2+USSHY(jsea)**2)>zero ) then
+            sqrt(USSX(jsea)**2+USSY(jsea)**2)>zero .and. sqrt(USSHX(jsea)**2+USSHY(jsea)**2)>zero ) then
+           sww = atan2(USSHY(jsea),USSHX(jsea)) - UD(isea)
+           alphal = atan( sin(sww) / (                                       &
+                          2.5 * UST(isea)*ASF(isea)*sqrt(dair/dwat)          &
+                        / max(1.e-14_r8, sqrt(USSX(jsea)**2+USSY(jsea)**2))  &
+                        * log(max(1.0, abs(1.25*HSL(ix,iy)/HS(jsea))))       &
+                        + cos(sww)   )                                       &
+                        )
+           lasl = sqrt(ust(isea) * asf(isea) * sqrt(dair/dwat) &
+                                 / sqrt(usshx(jsea)**2 + usshy(jsea)**2 ))
+           laslpj = lasl * sqrt(abs(cos(alphal)) &
+               / abs(cos(sww-alphal)))
            sw_lamult(jsea) = min(5.0, abs(cos(alphal)) * &
-                              sqrt(1.0+(1.5*laslpj(jsea))**(-2)+(5.4_r8*laslpj(jsea))**(-4)))
+                              sqrt(1.0+(1.5*laslpj)**(-2)+(5.4_r8*laslpj)**(-4)))
         else
           sw_lamult(jsea)  = 1.
         endif
@@ -822,10 +811,22 @@ contains
         call init_get_isea(isea, jsea)
         ix  = mapsf(isea,1)
         iy  = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1) then
-          sw_hstokes(jsea) = laslpj(jsea)
+        if (mapsta(iy,ix) == 1 .and. HS(jsea) > zero .and. &
+            sqrt(USSX(jsea)**2+USSY(jsea)**2)>zero .and. sqrt(USSHX(jsea)**2+USSHY(jsea)**2)>zero ) then
+           sww = atan2(USSHY(jsea),USSHX(jsea)) - UD(isea)
+           alphal = atan( sin(sww) / (                                       &
+                          2.5 * UST(isea)*ASF(isea)*sqrt(dair/dwat)          &
+                        / max(1.e-14_r8, sqrt(USSX(jsea)**2+USSY(jsea)**2))  &
+                        * log(max(1.0, abs(1.25*HSL(ix,iy)/HS(jsea))))       &
+                        + cos(sww)   )                                       &
+                        )
+           lasl = sqrt(ust(isea) * asf(isea) * sqrt(dair/dwat) &
+                                 / sqrt(usshx(jsea)**2 + usshy(jsea)**2 ))
+           laslpj = lasl * sqrt(abs(cos(alphal)) &
+               / abs(cos(sww-alphal)))
+           sw_hstokes(jsea) = laslpj
         else
-          sw_hstokes(jsea) = 0.
+           sw_hstokes(jsea) = 0.
         endif
       enddo
     end if
