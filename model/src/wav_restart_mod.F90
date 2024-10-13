@@ -219,7 +219,7 @@ contains
 
     ! local variables
     type(MPI_Comm)       :: wave_communicator  ! needed for mpi_f08
-    integer              :: global_input(nsea), global_output(nsea)
+    integer, allocatable :: global_input(:), global_output(:)
     integer              :: nseal_cpl
     integer              :: ifill
     real                 :: rfill
@@ -315,6 +315,8 @@ contains
     call handle_err(ierr, 'get variable _FillValue'//trim(vname))
 
     ! fill global array with PE local values
+    allocate(global_input(nsea))
+    allocate(global_output(nsea))
     global_input = 0
     global_output = 0
     do jsea = 1,nseal_cpl
@@ -332,6 +334,8 @@ contains
       iy = mapsf(isea,2)
       lmap2d(iy,ix) = global_output(isea)
     end do
+    deallocate(global_input)
+    deallocate(global_output)
 
     mapsta = mod(lmap2d+2,8) - 2
     mapst2 = st2init + (lmap2d-mapsta)/8
@@ -410,7 +414,7 @@ contains
     real             , intent(out)   :: global_2d(:,:)
 
     ! local variables
-    real              :: global_input(nsea)
+    real, allocatable :: global_input(:)
     real              :: rfill
     real, allocatable :: lvar(:)
 
@@ -426,6 +430,7 @@ contains
     call handle_err(ierr, 'get variable _FillValue'//trim(vname))
 
     ! fill global array with PE local values
+    allocate(global_input(nsea))
     global_input = 0.0
     global_output = 0.0
     do jsea = 1,nseal_cpl
@@ -436,6 +441,7 @@ contains
     end do
     ! reduce across all PEs to create global array
     call MPI_AllReduce(global_input, global_output, nsea, MPI_REAL, MPI_SUM, wave_communicator, ierr)
+    deallocate(global_input)
 
     global_2d = 0.0
     do isea = 1,nsea

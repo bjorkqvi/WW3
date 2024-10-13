@@ -570,8 +570,8 @@ CONTAINS
     !
     LOGICAL                 :: FLACT, FLZERO, FLFRST, FLMAP, TSTAMP,&
          SKIP_O, FLAG_O, FLDDIR, READBC,      &
-         FLAG0 = .FALSE., FLOUTG, FLPFLD,     &
-         FLPART, LOCAL, FLOUTG2
+         FLAG0 = .FALSE., FLOUTG = .false., FLPFLD,     &
+         FLPART, LOCAL, FLOUTG2 = .false.
     !
 #ifdef W3_MPI
     LOGICAL                 :: FLGMPI(0:8)

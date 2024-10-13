@@ -312,9 +312,10 @@ contains
     logical        , optional, intent(in)  :: use_int
 
     ! local variables
-    integer          :: n, isea, jsea, ix, iy, nseal_cpl
-    integer, pointer :: dof2d(:)
-    logical          :: luse_int
+    integer :: n, isea, jsea, ix, iy, nseal_cpl
+    logical :: luse_int
+    integer(kind=PIO_OFFSET_KIND) :: lnx,lny
+    integer(kind=PIO_OFFSET_KIND), allocatable :: dof2d(:)
 #ifdef W3_PDLIB
     nseal_cpl = nseal - ng
 #else
@@ -325,13 +326,16 @@ contains
 
     allocate(dof2d(nseal_cpl))
     dof2d = 0
+    lnx = int(nx,PIO_OFFSET_KIND)
+    lny = int(ny,PIO_OFFSET_KIND)
+
     n = 0
     do jsea = 1,nseal_cpl
       call init_get_isea(isea, jsea)
       ix = mapsf(isea,1)                 ! global ix
       iy = mapsf(isea,2)                 ! global iy
       n = n+1
-      dof2d(n) = (iy-1)*nx + ix          ! local index : global index
+      dof2d(n) = (iy-1)*lnx + ix         ! local index : global index
     end do
 
     if (luse_int) then
@@ -357,8 +361,9 @@ contains
     type(io_desc_t) , intent(out) :: iodesc
 
     ! local variables
-    integer          :: n, k, isea, jsea, ix, iy, nseal_cpl
-    integer, pointer :: dof3d(:)
+    integer :: n, k, isea, jsea, ix, iy, nseal_cpl
+    integer(kind=PIO_OFFSET_KIND) :: lnx,lny
+    integer(kind=PIO_OFFSET_KIND), allocatable :: dof3d(:)
 #ifdef W3_PDLIB
     nseal_cpl = nseal - ng
 #else
@@ -367,14 +372,17 @@ contains
     allocate(dof3d(nz*nseal_cpl))
 
     dof3d = 0
+    lnx = int(nx,PIO_OFFSET_KIND)
+    lny = int(ny,PIO_OFFSET_KIND)
+
     n = 0
     do k = 1,nz
       do jsea = 1,nseal_cpl
         call init_get_isea(isea, jsea)
-        ix = mapsf(isea,1)     ! global ix
-        iy = mapsf(isea,2)     ! global iy
+        ix = mapsf(isea,1)                           ! global ix
+        iy = mapsf(isea,2)                           ! global iy
         n = n+1
-        dof3d(n) = ((iy-1)*nx + ix) + (k-1)*nx*ny ! local index : global index
+        dof3d(n) = ((iy-1)*lnx + ix) + (k-1)*lnx*lny ! local index : global index
       end do
     end do
 
