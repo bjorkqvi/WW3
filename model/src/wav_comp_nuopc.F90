@@ -91,6 +91,12 @@ module wav_comp_nuopc
   logical :: cesmcoupled = .false.                         !< logical to indicate non-CESM use case
 #endif
   integer, allocatable :: tend(:,:)                        !< the ending time of ModelAdvance when
+
+  character(len=256)  :: history_option = 'never'          !< History option units
+  integer             :: history_n = 1                     !< Number until history interval
+  integer             :: history_ymd = -999                !< History date (YYYYMMDD)
+  logical             :: aux_flds_to_cmeps                 !< Send auxiliary time averaged fields to CMEPS
+
                                                            !! run with multigrid=true
   integer :: ymd                                           !< current year-month-day
   integer :: tod                                           !< current time of day (sec)
@@ -231,7 +237,6 @@ contains
     ! local variables
     character(len=CL) :: logmsg
     logical           :: isPresent, isSet
-    logical           :: aux_flds_to_cmeps
     character(len=CL) :: cvalue
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !-------------------------------------------------------------------------------
@@ -712,7 +717,7 @@ contains
       endif
 
       ! netcdf is used for CESM history and restart
-      use_historync = .true.
+      use_historync = .false.
       use_restartnc = .true.
     else
       call NUOPC_CompAttributeGet(gcomp, name='use_restartnc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
@@ -1248,7 +1253,7 @@ contains
       call w3wave ( 1, odat, timen )
     end if
 #else
-    call w3wave ( 1, odat, timen )
+    call w3wave ( 1, odat, timen, aux_flds_to_cmeps=aux_flds_to_cmeps )
 #endif
     if(profile_memory) call ESMF_VMLogMemInfo("Exiting  WW3 Run : ")
 
@@ -1298,9 +1303,6 @@ contains
     integer                  :: stop_n         ! Number until stop interval
     integer                  :: stop_ymd       ! Stop date (YYYYMMDD)
     type(ESMF_ALARM)         :: stop_alarm
-    character(len=256)       :: history_option ! History option units
-    integer                  :: history_n      ! Number until history interval
-    integer                  :: history_ymd    ! History date (YYYYMMDD)
     type(ESMF_ALARM)         :: history_alarm
     character(len=128)       :: name
     integer                  :: alarmcount
@@ -1400,6 +1402,17 @@ contains
       !----------------
       ! History alarm
       !----------------
+#ifdef W3_CESMCOUPLED
+      call alarmInit(mclock, history_alarm, history_option, &
+           opt_n   = history_n,           &
+           opt_ymd = history_ymd,         &
+           RefTime = mStartTime,          &
+           alarmname = 'alarm_history', rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+      call ESMF_AlarmSet(history_alarm, clock=mclock, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+#else
       call NUOPC_CompAttributeGet(gcomp, name="history_option", isPresent=isPresent, isSet=isSet, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
       if (isPresent .and. isSet) then
@@ -1439,6 +1452,7 @@ contains
         write(msgString,'(a,i10)')' History will be written at field%stride freq ',history_n
         call ESMF_LogWrite(trim(subname)//trim(msgString), ESMF_LOGMSG_INFO)
       end if
+#endif
     end if
 
     !--------------------------------
@@ -1538,7 +1552,11 @@ contains
     character(len=*), parameter    :: subname = '(wav_comp_nuopc:wavinit_cesm)'
     ! -------------------------------------------------------------------
 
+#ifdef W3_CESMCOUPLED
+    namelist /ww3_inparm/ initfile, dtcfl, dtcfli, dtmax, dtmin, history_option, history_n
+#else
     namelist /ww3_inparm/ initfile, dtcfl, dtcfli, dtmax, dtmin
+#endif
 
     rc = ESMF_SUCCESS
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
@@ -1571,6 +1589,10 @@ contains
       write(stdout,'(a, 2x, f10.3)')' dtcfli   = ',dtcfli
       write(stdout,'(a, 2x, f10.3)')' dtmax    = ',dtmax
       write(stdout,'(a, 2x, f10.3)')' dtmin    = ',dtmin
+#ifdef W3_CESMCOUPLED
+      write(stdout,'(a)')' history_option = '//trim(history_option)
+      write(stdout,'(a, 2x, i8)')' history_n = ',history_n
+#endif
       write(stdout,*)
     end if
 

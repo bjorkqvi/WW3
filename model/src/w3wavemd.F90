@@ -225,11 +225,7 @@ CONTAINS
   !> @author H. L. Tolman  @date 22-Mar-2021
   !>
 
-  SUBROUTINE W3WAVE ( IMOD, ODAT, TEND, STAMP, NO_OUT &
-#ifdef W3_OASIS
-       ,ID_LCOMM, TIMEN                 &
-#endif
-       )
+  SUBROUTINE W3WAVE ( IMOD, ODAT, TEND, STAMP, NO_OUT, ID_LCOMM, TIMEN, aux_flds_to_cmeps)
     !/
     !/                  +-----------------------------------+
     !/                  | WAVEWATCH III           NOAA/NCEP |
@@ -506,10 +502,9 @@ CONTAINS
     !/
     INTEGER, INTENT(IN)           :: IMOD, TEND(2),ODAT(40)
     LOGICAL, INTENT(IN), OPTIONAL :: STAMP, NO_OUT
-#ifdef W3_OASIS
     INTEGER, INTENT(IN), OPTIONAL :: ID_LCOMM
     INTEGER, INTENT(IN), OPTIONAL :: TIMEN(2)
-#endif
+    logical, intent(in), optional :: aux_flds_to_cmeps ! W3_CESMCOUPLED
     !/
     !/ ------------------------------------------------------------------- /
     !/ Local parameters :
@@ -2362,6 +2357,11 @@ CONTAINS
             call w3cprt (imod)
             call w3outg (va, flpfld, .true., .false. )
             call write_history(tend)
+          else if (present(aux_flds_to_cmeps)) then
+            if (aux_flds_to_cmeps) then
+              call w3cprt (imod)
+              call w3outg (va, flpfld, .true., .false. )
+            end if
           end if
         end if
 
