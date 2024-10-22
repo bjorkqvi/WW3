@@ -717,7 +717,7 @@ contains
       endif
 
       ! netcdf is used for CESM history and restart
-      use_historync = .false.
+      use_historync = .true.
       use_restartnc = .true.
     else
       call NUOPC_CompAttributeGet(gcomp, name='use_restartnc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
