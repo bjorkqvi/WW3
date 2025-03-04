@@ -79,7 +79,7 @@
   # netcdf include dir
   if [ "$netcdf_compile" = 'yes' ]
   then
-    if [ "$mpi_mod" = 'no' ]; then comp="`$NETCDF_CONFIG --fc`"; fi
+  if [ "$mpi_mod" = 'no' ]; then comp="`$NETCDFF_CONFIG --fc`"; fi
     opt="$opt `$NETCDF_CONFIG --cflags`"
   fi
 
@@ -94,8 +94,9 @@
   fi
 
 # 2.b Compile - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-  $comp $opt $name.$fext 1> $name.out 2> $name.err
+  echo $comp > $name.out
+  echo $opt >> $name.out
+  $comp $opt $name.$fext 1>> $name.out 2> $name.err
   OK="$?"
 
 # --------------------------------------------------------------------------- #

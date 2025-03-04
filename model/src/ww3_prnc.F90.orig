@@ -285,7 +285,7 @@
       REAL                    :: X0I, XNI, Y0I, YNI, SXI, SYI,        &
                                  X, Y, FACTOR, EFAC, NODATA,          &
                                  XCFAC, XCOFF, YCFAC, YCOFF,          &
-                                 FILLVALUE, TIMEDELAY, MIN_WIND
+                                 FILLVALUE, TIMEDELAY
       REAL                    :: ACC = 0.05
 !
       REAL                    :: SCFAC(2), ADDOFF(2), RW(4)
@@ -555,9 +555,6 @@
          ELSE
             GOTO 810
          END IF ! NML_FORCING
-
-        MIN_WIND=REAL(NML_FORCING%MINWIND)
-
 
         ! Check grid asis/latlon
         IF (NML_FORCING%GRID%ASIS) THEN
@@ -2095,25 +2092,6 @@
                       END DO
                   END IF
 #endif
-
-!
-! ... Force minimum value on wind speed
-!
-                write(*,*) 'min U before force=', MINVAL(SQRT( FX**2 + FY**2)) 
-                IF (IFLD.EQ.3 .AND. MIN_WIND.GT.0) THEN
-                    DO IY=1,NY
-                      DO IX=1,NX
-!                      write(*,*) 'U=', SQRT( FX(IX,IY)**2 + FY(IX,IY)**2)
-                      IF (SQRT( FX(IX,IY)**2 + FY(IX,IY)**2).LT.MIN_WIND .AND. SQRT( FX(IX,IY)**2 + FY(IX,IY)**2).GT.0) THEN
-                          FACTOR = MIN_WIND/SQRT( FX(IX,IY)**2 + FY(IX,IY)**2)
-                          FX(IX,IY) = FACTOR * FX(IX,IY)
-                          FY(IX,IY) = FACTOR * FY(IX,IY)
-!                          write(*,*) 'NEWU=', SQRT( FX(IX,IY)**2 + FY(IX,IY)**2)
-                      END IF
-                      END DO
-                    END DO
-                END IF
-                write(*,*) 'min U after force=', MINVAL(SQRT( FX**2 + FY**2)) 
 !
 ! ... Currents, correct for velocity or energy conservation
 !
@@ -2197,13 +2175,10 @@
               CALL PRTBLK (NDSO, NX, NY, NX, FA, MAPOUT, 0, 0.,   &
                       IX0, IXN, 1, 1, NY, 1, 'Air density', 'kg/m3')
             ELSE
-                write(*,*) 'min U to PRTBLK=', MINVAL(SQRT( FX**2 + FY**2))
-
               CALL PRTBLK (NDSO, NX, NY, NX, FX, MAPOUT, 0, 0.,   &
                       IX0, IXN, 1, 1, NY, 1, 'Cart. X-comp', 'm/s')
               CALL PRTBLK (NDSO, NX, NY, NX, FY, MAPOUT, 0, 0.,   &
                       IX0, IXN, 1, 1, NY, 1, 'Cart. Y-comp', 'm/s')
-              write(*,*) 'min U from PRTBLK=', MINVAL(SQRT( FX**2 + FY**2))
               IF ( FLSTAB )                                       &
               CALL PRTBLK (NDSO, NX, NY, NX, FA, MAPOUT, 0, 0.,   &
                       IX0, IXN, 1, 1, NY, 1, 'Tair-Tsea', 'degr')
@@ -2220,15 +2195,13 @@
 ! 8.c Write fields
 !
         IF ( ITYPE .LE. 4 .OR. ITYPE.EQ.6 ) THEN
-               write(*,*) 'min U to W3FLDG=', MINVAL(SQRT( FX**2 + FY**2))
 #ifdef W3_O3
       IF ( IAPROC .EQ. NAPOUT )  WRITE (NDSO,977)
 #endif
-                IF ( IAPROC .EQ. NAPOUT ) CALL W3FLDG ('WRITE', IDFLD, NDSDAT, NDST, NDSE, NX, NY,  &
+          IF ( IAPROC .EQ. NAPOUT ) CALL W3FLDG ('WRITE', IDFLD, NDSDAT, NDST, NDSE, NX, NY,  &
                        NX, NY, TIME, TIME, TIME, FX, FY, FA, TIME,  &
                        FX, FY, FA, IERR)
 
-                write(*,*) 'min U from W3FLDG=', MINVAL(SQRT( FX**2 + FY**2))
         ELSE IF ( ITYPE .EQ. 5 ) THEN
           IF ( NDAT .EQ. 0 ) THEN
 #ifdef W3_O3
@@ -2246,7 +2219,6 @@
         IF (IERR.NE.0) CALL EXTCDE ( 30 )
 !
       END DO ! NTI
-
 !
       DEALLOCATE(XC,YC,AC,XTEMP)  
       IF (ASSOCIATED(ALA)) DEALLOCATE(ALA,ALO)

@@ -1624,6 +1624,11 @@
       REAL TAUW_LOCAL
       INTEGER IND,J
 !
+      IF (WINDSPEED.LT.1.99) THEN
+        write(*,*) 'min U check: in calc_uster U =', WINDSPEED
+!       write (*,*) 'wind in calc_ustar less than 2! = ', WINDSPEED
+      END IF
+
       TAUW_LOCAL=MAX(MIN(TAUW,TAUWMAX),0.)
       XI      = SQRT(TAUW_LOCAL)/DELTAUW
       IND     = MIN ( ITAUMAX-1, INT(XI)) ! index for stress table

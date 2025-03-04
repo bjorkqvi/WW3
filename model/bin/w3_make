@@ -475,7 +475,8 @@ EOF
         netcdf_compile=yes
       fi
       export netcdf_compile
-
+      echo 'netcdf'
+      echo $netcdf_compile
       mpi_mod=no
       if [ -n "`grep MPI $switch_file`" ]
       then
@@ -504,6 +505,8 @@ EOF
         export pdlib_mod='yes'
         esmfpdlib="$METIS_PATH/lib/libparmetis.a $METIS_PATH/lib/libmetis.a"
       fi
+      echo 'pdlib'
+      echo $pdlib_mod
       export pdlib_mod
 
       # NCEP GRIB
@@ -577,14 +580,26 @@ EOF
       if [ "$exec_type" != "$pres_type" ] ; then
           rm -f $main_dir/exe/$prog  ; fi
 
+
+      echo 'exec_type_file'
+      echo $exec_type_file
+      echo 'exec_type'
+      echo $exec_type
+      echo 'prog'
+      echo $prog
+      echo 'before'
       cp $exec_type_file tempfile
       sed -n "/$prog/!p" tempfile > $exec_type_file
       rm -f tempfile
-
+      echo 'after'
       path_m=$main_dir/mod
       export path_m
+      echo 'path_m'
+      echo $path_m
       # WW3_PARCOMPN is an environment variable to set the parallel make tasks
       # it defaults to 4
+      echo 'target'
+      echo $target
       if make -j ${WW3_PARCOMPN:-4} -f makefile $target
       then
         echo ' '
@@ -598,6 +613,8 @@ EOF
       if [ -n "`echo $prog | grep esmf 2>/dev/null`" ]
       then
         mkfile=$main_dir/nuopc.mk
+        echo 'mkfile'
+        echo $mkfile
         if [ -n "`grep OMP $switch_file`" ]
         then
           mod_dir=$main_dir/mod_HYB

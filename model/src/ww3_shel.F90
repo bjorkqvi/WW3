@@ -2562,6 +2562,7 @@
                       WX0, WY0, DT0, TWN, WXN, WYN, DTN, IERR)  
  !!Li  
 #endif
+
               ELSE
 #ifdef W3_OASIS
                 COUPL_COMM = MPI_COMM
@@ -2577,6 +2578,7 @@
                              , COUPL_COMM                       &
 #endif
                              )
+                write(*,*) 'min U read from wind.ww3=', MINVAL(SQRT(WXN**2 + WYN**2))
               END IF
 
 ! ICE : ice conc.

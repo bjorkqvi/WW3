@@ -1222,12 +1222,14 @@
 #ifdef W3_WNX2
               ICONSW = 2
 #endif
+              write(*,*) 'min U before mvupdv=', MINVAL(SQRT(INPUTS(JMOD)%WX0**2 + INPUTS(JMOD)%WY0**2))
               CALL WMUPDV ( IMOD, INPUTS(IMOD)%WX0, INPUTS(IMOD)%WY0, &
                             JMOD, INPUTS(JMOD)%WX0, INPUTS(JMOD)%WY0, &
                             0., ICONSW )
               IF ( IDINP(IMOD,J) .EQ. 'WNS' ) CALL WMUPDS             &
                           ( IMOD, INPUTS(IMOD)%DT0,                   &
                             JMOD, INPUTS(JMOD)%DT0, 0. )
+              write(*,*) 'min U after mvupdv=', MINVAL(SQRT(INPUTS(IMOD)%WX0**2 + INPUTS(IMOD)%WY0**2))
             END IF
 !
 ! 3.c Momentum
