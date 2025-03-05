@@ -162,7 +162,10 @@
       rpath="$rpath ${rprfx}${path//-L/}"
     fi
   done
-
+  echo $opt
+  echo $objects
+  echo $libs
+  echo $rpath
   $comp $opt $objects $libs $rpath                  > link.out 2> link.err
   OK="$?"
 
