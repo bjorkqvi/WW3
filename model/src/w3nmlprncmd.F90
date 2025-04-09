@@ -281,6 +281,7 @@ CONTAINS
     ! set default values for forcing structure
     FORCING%TIMESTART  = '19000101 000000'
     FORCING%TIMESTOP   = '29001231 000000'
+    FORCING%MINWIND   = 0.
     !
     FORCING%FIELD%ICE_PARAM1     = .FALSE.
     FORCING%FIELD%ICE_PARAM2     = .FALSE.
