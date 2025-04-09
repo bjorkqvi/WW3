@@ -285,7 +285,7 @@ PROGRAM W3PRNC
   REAL                    :: X0I, XNI, Y0I, YNI, SXI, SYI,        &
        X, Y, FACTOR, EFAC, NODATA,          &
        XCFAC, XCOFF, YCFAC, YCOFF,          &
-       FILLVALUE, TIMEDELAY
+       FILLVALUE, TIMEDELAY, MIN_WIND
   REAL                    :: ACC = 0.05
   !
   REAL                    :: SCFAC(2), ADDOFF(2), RW(4)
@@ -2113,9 +2113,28 @@ PROGRAM W3PRNC
           END DO
         END IF
 #endif
-        !
-        ! ... Currents, correct for velocity or energy conservation
-        !
+! ... Force minimum value on wind speed
+!
+  write(*,*) 'min U before force=', MINVAL(SQRT( FX**2 + FY**2)) 
+  IF (IFLD.EQ.3 .AND. MIN_WIND.GT.0) THEN
+      DO IY=1,NY
+        DO IX=1,NX
+!                      write(*,*) 'U=', SQRT( FX(IX,IY)**2 + FY(IX,IY)**2)
+        IF (SQRT( FX(IX,IY)**2 + FY(IX,IY)**2).LT.MIN_WIND .AND. SQRT( FX(IX,IY)**2 + FY(IX,IY)**2).GT.0) THEN
+            FACTOR = MIN_WIND/SQRT( FX(IX,IY)**2 + FY(IX,IY)**2)
+            FX(IX,IY) = FACTOR * FX(IX,IY)
+            FY(IX,IY) = FACTOR * FY(IX,IY)
+!                          write(*,*) 'NEWU=', SQRT( FX(IX,IY)**2 + FY(IX,IY)**2)
+        END IF
+        END DO
+      END DO
+  END IF
+  write(*,*) 'min U after force=', MINVAL(SQRT( FX**2 + FY**2)) 
+
+
+!
+! ... Currents, correct for velocity or energy conservation
+!
 #ifdef W3_CRT1
         IF (IFLD.EQ.4) THEN
           DO IY=1,NY
