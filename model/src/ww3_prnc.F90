@@ -557,6 +557,8 @@ PROGRAM W3PRNC
       GOTO 810
     END IF ! NML_FORCING
 
+    MIN_WIND=REAL(NML_FORCING%MINWIND)
+
     ! Check grid asis/latlon
     IF (NML_FORCING%GRID%ASIS) THEN
       ITYPE = 1
