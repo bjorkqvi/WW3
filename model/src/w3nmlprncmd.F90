@@ -57,6 +57,7 @@ MODULE W3NMLPRNCMD
     TYPE(NML_FIELD_T)           :: FIELD
     TYPE(NML_GRID_T)            :: GRID
     CHARACTER(256)              :: TIDAL
+    REAL                        :: MINWIND
   END TYPE NML_FORCING_T
 
   ! file structure
